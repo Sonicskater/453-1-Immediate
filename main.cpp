@@ -9,47 +9,54 @@
 
 //using namespace std;	//Uncomment to remove "std::" in front of functions
 
-struct Vec2f {
+float violet[] = { 1.0f, 0, 1.0f };
+float blue[] = { 0.0f, 0.0f, 1.0f };
+float green[] = { 0.0f, 1.0f, 0.0f };
+float red[] = { 1.0f, 0.0f, 0.0f };
+float orange[] = { 1.0f, 0.5f, 0.0f };
+float yellow[] = { 1.0f, 1.0f, 0.0f };
+
+struct Vec3d {
 	//public members by default
-	Vec2f() = default;
-	Vec2f(float x, float y) : x(x), y(y) {}
-	
-	float x = 0.f;	
-	float y = 0.f;
+	Vec3d(GLdouble a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
+	Vec3d() = default;
+	Vec3d(GLdouble x, GLdouble y, GLdouble z) : x(x), y(y) , z(z) {}
+	Vec3d(float a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
+	GLdouble x = 0.f;	
+	GLdouble y = 0.f;
+	GLdouble z = 0.f;
 };
 
-Vec2f add(Vec2f a, Vec2f b) { return Vec2f(a.x + b.x, a.y + b.y); }
-Vec2f operator+(Vec2f a, Vec2f b) { return Vec2f(a.x + b.x, a.y + b.y); }
-
-std::ostream &operator<<(std::ostream &out, Vec2f const &a) {
-	return out << a.x << ' ' << a.y;
-}
+Vec3d add(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y, a.z + b.z); }
+Vec3d operator+(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y,a.z + b.z); }
 
 class Triangle {
 	//Private members by default
-	Vec2f m_verts[3];	
-
+	Vec3d m_verts[3];	
+	
 public:
+	Vec3d m_color;
 	Triangle() = default;
-	Triangle(Vec2f a, Vec2f b, Vec2f c) {
+	Triangle(Vec3d a, Vec3d b, Vec3d c, Vec3d color= yellow) {
 		m_verts[0] = a;
 		m_verts[1] = b;
 		m_verts[2] = c;
+		m_color = color;
 	}
 
 	//functions to get/read value
-	Vec2f a() const { return m_verts[0]; }
-	Vec2f b() const { return m_verts[1]; }
-	Vec2f c() const { return m_verts[2]; }
+	Vec3d a() const { return m_verts[0]; }
+	Vec3d b() const { return m_verts[1]; }
+	Vec3d c() const { return m_verts[2]; }
 
-	Vec2f operator[](int index) const { return m_verts[index]; }
+	Vec3d operator[](int index) const { return m_verts[index]; }
 
 	//functions to set value
-	Vec2f &a() { return m_verts[0]; }
-	Vec2f &b() { return m_verts[1]; }
-	Vec2f &c() { return m_verts[2]; }
+	Vec3d &a() { return m_verts[0]; }
+	Vec3d &b() { return m_verts[1]; }
+	Vec3d &c() { return m_verts[2]; }
 
-	Vec2f &operator[](int index) { return m_verts[index]; }	
+	Vec3d &operator[](int index) { return m_verts[index]; }	
 };
 
 void drawTri(Triangle t) {
@@ -114,13 +121,17 @@ void drawFace(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], G
 
 
 }
+void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], GLdouble bottomLeft[], GLfloat color[], std::vector<Triangle> &tris) {
 
-float violet[] = { 1.0f, 0, 1.0f };
-float blue[] = { 0.0f, 0.0f, 1.0f };
-float green[] = { 0.0f, 1.0f, 0.0f };
-float red[] = { 1.0f, 0.0f, 0.0f };
-float orange[] = { 1.0f, 0.5f, 0.0f };
-float yellow[] = { 1.0f, 1.0f, 0.0f };
+
+	Triangle tl = Triangle(topRight,topLeft,bottomLeft,color);
+	Triangle br = Triangle(topRight, bottomLeft, bottomRight, color);
+	tris.push_back(tl);
+	tris.push_back(br);
+
+}
+
+
 
 
 
@@ -138,7 +149,7 @@ void drawCube(double x, double y, double z, double size, std::vector<bool> faces
 	GLdouble bbr[] = { x+size,y-size,z-size };
 
 
-	glBegin(GL_QUADS);
+	
 
 	//top face
 	if (faces[0]) drawFace(tbl, tbr, tfr, tfl, green);
@@ -158,8 +169,43 @@ void drawCube(double x, double y, double z, double size, std::vector<bool> faces
 	//right face
 	if (faces[5]) drawFace(tfr, tbr, bbr, bfr, violet);
 
-	glEnd();
-	
+}
+
+void drawCubeTris(double x, double y, double z, double size, std::vector<bool> faces, std::vector<Triangle> &tris) {
+	GLdouble tfl[] = { x,y,z };
+	GLdouble tfr[] = { x + size,y,z };
+
+	GLdouble tbl[] = { x,y,z - size };
+	GLdouble tbr[] = { x + size,y,z - size };
+
+	GLdouble bfl[] = { x,y - size,z };
+	GLdouble bfr[] = { x + size,y - size,z };
+
+	GLdouble bbl[] = { x,y - size,z - size };
+	GLdouble bbr[] = { x + size,y - size,z - size };
+
+	GLdouble zero[] = { 0,0,0 };
+
+
+
+	//top face
+	if (faces[0]) drawFaceTris(tbl, tbr, tfr, tfl, green, tris);
+
+	//bottom
+	if (faces[1]) drawFaceTris(bbr, bbl, bfl, bfr, orange, tris);
+
+	//front face
+	if (faces[2]) drawFaceTris(tfl, tfr, bfr, bfl, red, tris);
+
+	//back face
+	if (faces[3]) drawFaceTris(tbr, tbl, bbl, bbr, yellow, tris);
+
+	//left face
+	if (faces[4]) drawFaceTris(tbl, tfl, bfl, bbl, blue, tris);
+
+	//right face
+	if (faces[5]) drawFaceTris(tfr, tbr, bbr, bfr, violet, tris);
+
 }
 
 void drawSponge(double x, double y, double z, double size, int r, std::vector<bool> faces) {
@@ -223,6 +269,70 @@ void drawSponge(double x, double y, double z, double size, int r, std::vector<bo
 			drawSponge(x, up, layer_depth, s, r, faces);
 			drawSponge(x + s, up, layer_depth, s, r, faces);
 			drawSponge(x + 2 * s, up, layer_depth, s, r, faces);
+	}
+}
+
+void drawSpongeTris(double x, double y, double z, double size, int r, std::vector<bool> faces, std::vector<Triangle> &tris) {
+	if (!r) {
+		drawCubeTris(x, y, z, size, faces, tris);
+	}
+	else {
+		r = r - 1;
+		double s = size / 3;
+
+		double layer_depth = z;
+		//front cubes
+
+			// top layer
+		double up = y;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+
+
+		// middle layer
+		up = y - s;
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+
+		// bottom layer
+		up = y - 2 * s;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+
+		//connectors
+		layer_depth = z - s;
+
+		// top
+		up = y;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+
+		// bottom
+		up = y - 2 * s;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+
+		//back cubes
+		layer_depth = z - 2 * s;
+
+		// top layer
+		up = y;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+
+		// mid layer
+		up = y - s;
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+
+		// bottom layer
+		up = y - 2 * s;
+		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + s, up, layer_depth, s, r, faces, tris);
+		drawSpongeTris(x + 2 * s, up, layer_depth, s, r, faces, tris);
 	}
 }
 
@@ -322,6 +432,7 @@ void drawSpongeCulled(double x, double y, double z, double size, int r, std::vec
 			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f21);
 	}
 }
+
 int main() {
   GLFWwindow *window = nullptr;
 
@@ -355,57 +466,43 @@ int main() {
 
   glfwSwapInterval(1); // vsync
   
-  //Set data
-  
-  // NDC [-1, 1]
-  Triangle baseTriangle(Vec2f(-1, -1), // explicit
-                          {1, -1},       // implied
-                          {0, 1});
-                          
-  std::vector<Triangle> tris;
-  //tris.push_back(baseTriangle);
-  tris.push_back(Triangle(Vec2f(-1, 1), {-1,-1}, {0,1}));
-  
-  float spin = 0.1f;
+  float spin = 1.0f;
   glScaled(.2,.2,.2);
   glTranslatef(0, 0,0.0f);
   glRotatef(-10, 1, 0, 0.00);
-  
+  std::vector<bool> faces = { true, true, true, true, true, true };
+  std::vector<Triangle> tris = {};
+  drawSpongeTris(-2.5, 2.5, 2.5, 5, 4, faces, tris);
+  std::cout << tris.size() << "\n";
   // Rendering loop
   while (!glfwWindowShouldClose(window)) {
 
 	  //spin = spin - .5; // inc for spin
-	  if (spin < 360)
-	  {
+	  if (spin < 360){
 		  //spin = spin + 360;
 	  }
-	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 	glDepthFunc(GL_LESS);
-    glBegin(GL_TRIANGLES);
-    for(int i = 0; i < tris.size(); i++) {
-		Triangle t = tris[i];
-		//drawTri(t);
-	}
 
-
-    
-    /* Another way to iterate through elements in list
-    for (auto t : tris) {
-      glVertex2f(t[0].x, t[0].y);
-      glVertex2f(t[1].x, t[1].y);
-      glVertex2f(t[2].x, t[2].y);
-    }
-    * */
-    
-    glEnd();
-	//drawCubeSimple();
-	std::vector<bool> faces = { true, true, true, true, true, true };
-	drawSponge(-2.5, 2.5, 2.5, 5, 2, faces);
+	glBegin(GL_TRIANGLES);
 	
+    for (auto t : tris) {
+		
+		glColor3d(t.m_color.x, t.m_color.y, t.m_color.z);
+		  glVertex3d(t[0].x, t[0].y, t[0].z);
+		  glVertex3d(t[1].x, t[1].y, t[1].z);
+		  glVertex3d(t[2].x, t[2].y, t[2].z);
+    }
+	
+	//glBegin(GL_QUADS);
+
+
+	//drawSponge(-2.5, 2.5, 2.5, 5, 5, faces);
+	glEnd();
 	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
     glfwSwapBuffers(window);
