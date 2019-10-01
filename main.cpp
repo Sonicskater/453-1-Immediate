@@ -144,7 +144,7 @@ void drawCube(double x, double y, double z, double size, std::vector<bool> faces
 	if (faces[0]) drawFace(tbl, tbr, tfr, tfl, green);
 
 	//bottom
-	if (faces[1]) drawFace(bbl, bbr, bfr, bfl, orange);
+	if (faces[1]) drawFace(bbr, bbl, bfl, bfr, orange);
 
 	//front face
 	if (faces[2]) drawFace(tfl, tfr, bfr, bfl, red);
@@ -379,8 +379,11 @@ int main() {
 	  {
 		  //spin = spin + 360;
 	  }
+	glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_FRONT);
 	glDepthFunc(GL_LESS);
     glBegin(GL_TRIANGLES);
     for(int i = 0; i < tris.size(); i++) {
@@ -400,8 +403,8 @@ int main() {
     
     glEnd();
 	//drawCubeSimple();
-	std::vector<bool> faces = { true, false, false, false, false, false };
-	drawSponge(-2.5, 2.5, 2.5, 5, 1, faces);
+	std::vector<bool> faces = { true, true, true, true, true, true };
+	drawSponge(-2.5, 2.5, 2.5, 5, 2, faces);
 	
 	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
