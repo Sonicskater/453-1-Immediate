@@ -57,8 +57,9 @@ void drawTri(Triangle t) {
 	glVertex2f(t[1].x, t[1].y);
 	glVertex2f(t[2].x, t[2].y);
 }
-void idk() {
+void drawCubeSimple() {
 	glBegin(GL_QUADS);
+
 	// Top face
 	glColor3f(0.0f, 1.0f, 0.0f);  // Green
 	glVertex3f(1.0f, 1.0f, -1.0f);  // Top-right of top face
@@ -101,6 +102,105 @@ void idk() {
 	glVertex3f(1.0f, -1.0f, -1.0f);  // Bottom-Left of left face
 	glVertex3f(1.0f, -1.0f, 1.0f);  // Bottom-Right of left face
 	glEnd();
+}
+void drawFace(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], GLdouble bottomLeft[], GLfloat color[]){
+
+	glColor3fv(color);
+
+	glVertex3dv(topRight);
+	glVertex3dv(topLeft);
+	glVertex3dv(bottomLeft);
+	glVertex3dv(bottomRight);
+
+
+}
+void drawCube(double x, double y, double z, double size) {
+	GLdouble tfl[] = { x,y,z };
+	GLdouble tfr[] = { x+size,y,z };
+	
+	GLdouble tbl[] = { x,y,z-size };
+	GLdouble tbr[] = { x+size,y,z-size };
+
+	GLdouble bfl[] = { x,y-size,z };
+	GLdouble bfr[] = { x+size,y-size,z };
+
+	GLdouble bbl[] = { x,y-size,z-size };
+	GLdouble bbr[] = { x+size,y-size,z-size };
+	float violet[] = { 1.0f, 0, 1.0f };
+	float blue[] = { 0.0f, 0.0f, 1.0f };
+	float green[] = { 0.0f, 1.0f, 0.0f };
+	float red[] = { 1.0f, 0.0f, 0.0f };
+	float orange[] = { 1.0f, 0.5f, 0.0f };
+	float yellow[] = { 1.0f, 1.0f, 0.0f };
+
+	glBegin(GL_QUADS);
+
+	//top face
+	drawFace(tbl, tbr, tfr, tfl, green);
+
+	//bottom
+	drawFace(bbl, bbr, bfr, bfl, orange);
+
+	//front face
+	drawFace(tfl, tfr, bfr, bfl, red);
+
+	//back face
+	drawFace(tbr, tbl, bbl, bbr, yellow);
+
+	//left face
+	drawFace(tbl, tfl, bfl,bbl,blue);
+
+	//right face
+	drawFace(tfr, tbr, bbr, bfr, violet);
+
+	glEnd();
+	
+}
+
+void drawSponge(double x, double y, double z, double size, int r) {
+	if (!r) {
+		drawCube(x, y, z, size);
+	}
+	else {
+		double s = size / 3;
+
+		//front cubes
+
+			// top layer
+			drawSponge(x, y, z, s, r - 1);
+			drawSponge(x+s, y, z, s, r - 1);
+			drawSponge(x+2*s, y, z, s, r - 1);
+
+			// middle layer
+			drawSponge(x+2*s, y-s, z, s, r - 1);
+			drawSponge(x, y-s, z, s, r - 1);
+
+			// bottom layer
+			drawSponge(x, y-2*s, z, s, r - 1);
+			drawSponge(x+s, y-2*s, z, s, r - 1);
+			drawSponge(x+2*s, y-2*s, z, s, r - 1);
+
+		//connectors
+			drawSponge(x, y, z-s, s, r - 1);
+			drawSponge(x+2*s, y, z-s, s, r - 1);
+			drawSponge(x, y-2*s, z-s, s, r - 1);
+			drawSponge(x+2*s, y-2*s, z-s, s, r - 1);
+
+		//back cubes
+			// top layer
+			drawSponge(x, y, z - 2 * s, s, r - 1);
+			drawSponge(x+s, y, z - 2 * s, s, r - 1);
+			drawSponge(x+2*s, y, z - 2 * s, s, r - 1);
+
+			// mid layer
+			drawSponge(x+2*s, y-s, z - 2 * s, s, r - 1);
+			drawSponge(x, y-s, z - 2 * s, s, r - 1);
+
+			// bottom layer
+			drawSponge(x, y - 2 * s, z - 2 * s, s, r - 1);
+			drawSponge(x + s, y - 2 * s, z - 2 * s, s, r - 1);
+			drawSponge(x + 2 * s, y - 2 * s, z - 2 * s, s, r - 1);
+	}
 }
 int main() {
   GLFWwindow *window = nullptr;
@@ -147,7 +247,7 @@ int main() {
   tris.push_back(Triangle(Vec2f(-1, 1), {-1,-1}, {0,1}));
   
   float spin = 0.1f;
-  glScaled(.1,.1,.1);
+  glScaled(.2,.2,.2);
   glTranslatef(0, 0,0.0f);
   glRotatef(-10, 1, 0, 0.00);
   
@@ -165,7 +265,7 @@ int main() {
     glBegin(GL_TRIANGLES);
     for(int i = 0; i < tris.size(); i++) {
 		Triangle t = tris[i];
-		drawTri(t);
+		//drawTri(t);
 	}
 
 
@@ -179,7 +279,9 @@ int main() {
     * */
     
     glEnd();
-	idk();
+	//drawCubeSimple();
+
+	drawSponge(-2.5, 2.5, 2.5, 5, 3);
 	
 	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
