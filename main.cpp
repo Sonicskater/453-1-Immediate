@@ -122,7 +122,9 @@ float red[] = { 1.0f, 0.0f, 0.0f };
 float orange[] = { 1.0f, 0.5f, 0.0f };
 float yellow[] = { 1.0f, 1.0f, 0.0f };
 
-void drawCube(double x, double y, double z, double size) {
+
+
+void drawCube(double x, double y, double z, double size, std::vector<bool> faces) {
 	GLdouble tfl[] = { x,y,z };
 	GLdouble tfr[] = { x+size,y,z };
 	
@@ -139,70 +141,185 @@ void drawCube(double x, double y, double z, double size) {
 	glBegin(GL_QUADS);
 
 	//top face
-	drawFace(tbl, tbr, tfr, tfl, green);
+	if (faces[0]) drawFace(tbl, tbr, tfr, tfl, green);
 
 	//bottom
-	drawFace(bbl, bbr, bfr, bfl, orange);
+	if (faces[1]) drawFace(bbl, bbr, bfr, bfl, orange);
 
 	//front face
-	drawFace(tfl, tfr, bfr, bfl, red);
+	if (faces[2]) drawFace(tfl, tfr, bfr, bfl, red);
 
 	//back face
-	drawFace(tbr, tbl, bbl, bbr, yellow);
+	if (faces[3]) drawFace(tbr, tbl, bbl, bbr, yellow);
 
 	//left face
-	drawFace(tbl, tfl, bfl,bbl,blue);
+	if (faces[4]) drawFace(tbl, tfl, bfl,bbl,blue);
 
 	//right face
-	drawFace(tfr, tbr, bbr, bfr, violet);
+	if (faces[5]) drawFace(tfr, tbr, bbr, bfr, violet);
 
 	glEnd();
 	
 }
 
-void drawSponge(double x, double y, double z, double size, int r) {
+void drawSponge(double x, double y, double z, double size, int r, std::vector<bool> faces) {
 	if (!r) {
-		drawCube(x, y, z, size);
+		drawCube(x, y, z, size,faces);
 	}
 	else {
+		r = r - 1;
 		double s = size / 3;
 
+		double layer_depth = z;
+		//front cubes
+		
+			// top layer
+			double up = y;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x+s, up, layer_depth, s, r, faces);
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+
+			
+			// middle layer
+			up = y - s;
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+			drawSponge(x, up, layer_depth, s, r, faces);
+
+			// bottom layer
+			up = y - 2 * s;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x+s, up, layer_depth, s, r, faces);
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+
+		//connectors
+		layer_depth = z - s;
+
+			// top
+			up = y;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+
+			// bottom
+			up = y - 2 * s;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+
+		//back cubes
+		layer_depth = z - 2 * s;
+
+			// top layer
+			up = y;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x+s, up, layer_depth, s, r, faces);
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+
+			// mid layer
+			up = y - s;
+			drawSponge(x+2*s, up, layer_depth, s, r, faces);
+			drawSponge(x, up, layer_depth, s, r, faces);
+
+			// bottom layer
+			up = y - 2 * s;
+			drawSponge(x, up, layer_depth, s, r, faces);
+			drawSponge(x + s, up, layer_depth, s, r, faces);
+			drawSponge(x + 2 * s, up, layer_depth, s, r, faces);
+	}
+}
+
+void drawSpongeCulled(double x, double y, double z, double size, int r, std::vector<bool> faces) {
+	if (!r) {
+		drawCube(x, y, z, size, faces);
+	}
+	else {
+
+		r = r - 1;
+		double s = size / 3;
+		double layer_depth = z;
 		//front cubes
 
 			// top layer
-			drawSponge(x, y, z, s, r - 1);
-			drawSponge(x+s, y, z, s, r - 1);
-			drawSponge(x+2*s, y, z, s, r - 1);
+			double up = y;
+			std::vector<bool> f1 = {faces[0]&&true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f1);
+			std::vector<bool> f2 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + s, up, layer_depth, s, r, f2);
+			std::vector<bool> f3 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f3);
+
 
 			// middle layer
-			drawSponge(x+2*s, y-s, z, s, r - 1);
-			drawSponge(x, y-s, z, s, r - 1);
+			up = y - s;
+			std::vector<bool> f4 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f4);
+			std::vector<bool> f5 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f5);
 
 			// bottom layer
-			drawSponge(x, y-2*s, z, s, r - 1);
-			drawSponge(x+s, y-2*s, z, s, r - 1);
-			drawSponge(x+2*s, y-2*s, z, s, r - 1);
+			up = y - 2 * s;
+			std::vector<bool> f6 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f6);
+			std::vector<bool> f7 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + s, up, layer_depth, s, r, f7);
+			std::vector<bool> f8 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f8);
 
 		//connectors
-			drawSponge(x, y, z-s, s, r - 1);
-			drawSponge(x+2*s, y, z-s, s, r - 1);
-			drawSponge(x, y-2*s, z-s, s, r - 1);
-			drawSponge(x+2*s, y-2*s, z-s, s, r - 1);
+		layer_depth = z - s;
+
+			// top
+			up = y;
+
+			std::vector<bool> f10 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f10);
+			
+
+			std::vector<bool> f11 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f11);
+
+			// bottom
+			up = y - 2 * s;
+
+			std::vector<bool> f12 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f12);
+
+			std::vector<bool> f13 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f13);
 
 		//back cubes
+		layer_depth = z - 2 * s;
+
 			// top layer
-			drawSponge(x, y, z - 2 * s, s, r - 1);
-			drawSponge(x+s, y, z - 2 * s, s, r - 1);
-			drawSponge(x+2*s, y, z - 2 * s, s, r - 1);
+			up = y;
+
+			std::vector<bool> f14 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f14);
+
+			std::vector<bool> f15 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + s, up, layer_depth, s, r, f15);
+
+			std::vector<bool> f16 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f16);
 
 			// mid layer
-			drawSponge(x+2*s, y-s, z - 2 * s, s, r - 1);
-			drawSponge(x, y-s, z - 2 * s, s, r - 1);
+			up = y - s;
+
+			std::vector<bool> f17 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f17);
+
+			std::vector<bool> f18 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f18);
 
 			// bottom layer
-			drawSponge(x, y - 2 * s, z - 2 * s, s, r - 1);
-			drawSponge(x + s, y - 2 * s, z - 2 * s, s, r - 1);
-			drawSponge(x + 2 * s, y - 2 * s, z - 2 * s, s, r - 1);
+			up = y - 2 * s;
+
+			std::vector<bool> f19 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x, up, layer_depth, s, r, f19);
+
+			std::vector<bool> f20 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + s, up, layer_depth, s, r, f20);
+
+			std::vector<bool> f21 = { faces[0] && true, faces[1] && true, faces[2] && true, faces[3] && true, faces[4] && true, faces[5] && true };
+			drawSpongeCulled(x + 2 * s, up, layer_depth, s, r, f21);
 	}
 }
 int main() {
@@ -283,8 +400,8 @@ int main() {
     
     glEnd();
 	//drawCubeSimple();
-
-	drawSponge(-2.5, 2.5, 2.5, 5, 4);
+	std::vector<bool> faces = { true, false, false, false, false, false };
+	drawSponge(-2.5, 2.5, 2.5, 5, 1, faces);
 	
 	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
