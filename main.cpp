@@ -52,7 +52,56 @@ public:
 	Vec2f &operator[](int index) { return m_verts[index]; }	
 };
 
+void drawTri(Triangle t) {
+	glVertex2f(t[0].x, t[0].y);
+	glVertex2f(t[1].x, t[1].y);
+	glVertex2f(t[2].x, t[2].y);
+}
+void idk() {
+	glBegin(GL_QUADS);
+	// Top face
+	glColor3f(0.0f, 1.0f, 0.0f);  // Green
+	glVertex3f(1.0f, 1.0f, -1.0f);  // Top-right of top face
+	glVertex3f(-1.0f, 1.0f, -1.0f);  // Top-left of top face
+	glVertex3f(-1.0f, 1.0f, 1.0f);  // Bottom-left of top face
+	glVertex3f(1.0f, 1.0f, 1.0f);  // Bottom-right of top face
 
+	// Bottom face
+	glColor3f(1.0f, 0.5f, 0.0f); // Orange
+	glVertex3f(1.0f, -1.0f, -1.0f); // Top-right of bottom face
+	glVertex3f(-1.0f, -1.0f, -1.0f); // Top-left of bottom face
+	glVertex3f(-1.0f, -1.0f, 1.0f); // Bottom-left of bottom face
+	glVertex3f(1.0f, -1.0f, 1.0f); // Bottom-right of bottom face
+
+	// Front face
+	glColor3f(1.0f, 0.0f, 0.0f);  // Red
+	glVertex3f(1.0f, 1.0f, 1.0f);  // Top-Right of front face
+	glVertex3f(-1.0f, 1.0f, 1.0f);  // Top-left of front face
+	glVertex3f(-1.0f, -1.0f, 1.0f);  // Bottom-left of front face
+	glVertex3f(1.0f, -1.0f, 1.0f);  // Bottom-right of front face
+
+	// Back face
+	glColor3f(1.0f, 1.0f, 0.0f); // Yellow
+	glVertex3f(1.0f, -1.0f, -1.0f); // Bottom-Left of back face
+	glVertex3f(-1.0f, -1.0f, -1.0f); // Bottom-Right of back face
+	glVertex3f(-1.0f, 1.0f, -1.0f); // Top-Right of back face
+	glVertex3f(1.0f, 1.0f, -1.0f); // Top-Left of back face
+
+	// Left face
+	glColor3f(0.0f, 0.0f, 1.0f);  // Blue
+	glVertex3f(-1.0f, 1.0f, 1.0f);  // Top-Right of left face
+	glVertex3f(-1.0f, 1.0f, -1.0f);  // Top-Left of left face
+	glVertex3f(-1.0f, -1.0f, -1.0f);  // Bottom-Left of left face
+	glVertex3f(-1.0f, -1.0f, 1.0f);  // Bottom-Right of left face
+
+	// Right face
+	glColor3f(1.0f, 0.0f, 1.0f);  // Violet
+	glVertex3f(1.0f, 1.0f, 1.0f);  // Top-Right of left face
+	glVertex3f(1.0f, 1.0f, -1.0f);  // Top-Left of left face
+	glVertex3f(1.0f, -1.0f, -1.0f);  // Bottom-Left of left face
+	glVertex3f(1.0f, -1.0f, 1.0f);  // Bottom-Right of left face
+	glEnd();
+}
 int main() {
   GLFWwindow *window = nullptr;
 
@@ -94,20 +143,32 @@ int main() {
                           {0, 1});
                           
   std::vector<Triangle> tris;
-  tris.push_back(baseTriangle);
-
+  //tris.push_back(baseTriangle);
+  tris.push_back(Triangle(Vec2f(-1, 1), {-1,-1}, {0,1}));
+  
+  float spin = 0.1f;
+  glScaled(.1,.1,.1);
+  glTranslatef(0, 0,0.0f);
+  glRotatef(-10, 1, 0, 0.00);
+  
   // Rendering loop
   while (!glfwWindowShouldClose(window)) {
 
-    glClear(GL_COLOR_BUFFER_BIT);
-
+	  //spin = spin - .5; // inc for spin
+	  if (spin < 360)
+	  {
+		  //spin = spin + 360;
+	  }
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
     glBegin(GL_TRIANGLES);
     for(int i = 0; i < tris.size(); i++) {
 		Triangle t = tris[i];
-		glVertex2f(t[0].x, t[0].y);
-		glVertex2f(t[1].x, t[1].y);
-		glVertex2f(t[2].x, t[2].y);
+		drawTri(t);
 	}
+
+
     
     /* Another way to iterate through elements in list
     for (auto t : tris) {
@@ -118,7 +179,9 @@ int main() {
     * */
     
     glEnd();
-
+	idk();
+	
+	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
     glfwSwapBuffers(window);
 
