@@ -114,6 +114,14 @@ void drawFace(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], G
 
 
 }
+
+float violet[] = { 1.0f, 0, 1.0f };
+float blue[] = { 0.0f, 0.0f, 1.0f };
+float green[] = { 0.0f, 1.0f, 0.0f };
+float red[] = { 1.0f, 0.0f, 0.0f };
+float orange[] = { 1.0f, 0.5f, 0.0f };
+float yellow[] = { 1.0f, 1.0f, 0.0f };
+
 void drawCube(double x, double y, double z, double size) {
 	GLdouble tfl[] = { x,y,z };
 	GLdouble tfr[] = { x+size,y,z };
@@ -126,12 +134,7 @@ void drawCube(double x, double y, double z, double size) {
 
 	GLdouble bbl[] = { x,y-size,z-size };
 	GLdouble bbr[] = { x+size,y-size,z-size };
-	float violet[] = { 1.0f, 0, 1.0f };
-	float blue[] = { 0.0f, 0.0f, 1.0f };
-	float green[] = { 0.0f, 1.0f, 0.0f };
-	float red[] = { 1.0f, 0.0f, 0.0f };
-	float orange[] = { 1.0f, 0.5f, 0.0f };
-	float yellow[] = { 1.0f, 1.0f, 0.0f };
+
 
 	glBegin(GL_QUADS);
 
@@ -281,7 +284,7 @@ int main() {
     glEnd();
 	//drawCubeSimple();
 
-	drawSponge(-2.5, 2.5, 2.5, 5, 3);
+	drawSponge(-2.5, 2.5, 2.5, 5, 4);
 	
 	glRotatef(spin, 1.0,1.0,1.0);
 	//Swap current scene with next scene
