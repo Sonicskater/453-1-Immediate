@@ -2,10 +2,17 @@
 #include <iostream>
 #include <vector>
 
+//#include <gl/glu.h>
+#include <math.h>
 //
 #include "glad/glad.h"
+
 //
+#define GLFW_INCLUDE_GLU 
 #include "GLFW/glfw3.h"
+
+#define RAD 57.29577951
+#define DegToRad(angle)	((angle)/RAD)
 
 //using namespace std;	//Uncomment to remove "std::" in front of functions
 
@@ -15,6 +22,68 @@ float green[] = { 0.0f, 1.0f, 0.0f };
 float red[] = { 1.0f, 0.0f, 0.0f };
 float orange[] = { 1.0f, 0.5f, 0.0f };
 float yellow[] = { 1.0f, 1.0f, 0.0f };
+
+struct V3f	// declaration and initializatoin of the "V3f" structure
+{
+	float x, y, z;
+	V3f(float x1, float y1, float z1)
+	{
+		x = x1; y = y1; z = z1;
+	}
+	V3f()
+	{
+		x = 0; y = 0; z = 0;
+	}
+};
+
+V3f operator+(V3f a, V3f b)			// vector addition
+{
+	return V3f(a.x + b.x, a.y + b.y, a.z + b.z);
+}
+
+V3f operator-(V3f a) 				// changing sign of a vector
+{
+	return V3f(-a.x, -a.y, -a.z);
+}
+
+V3f operator-(V3f a, V3f b)			// vectior subtraction
+{
+	return V3f(a.x - b.x, a.y - b.y, a.z - b.z);
+}
+
+V3f operator*(float c, V3f a)		// scalar multiplied by a vector
+{
+	return V3f(c * a.x, c * a.y, c * a.z);
+}
+
+V3f operator*(V3f a, float c)		// vector multiplied by a scalar
+{
+	return V3f(c * a.x, c * a.y, c * a.z);
+}
+
+float operator*(V3f a, V3f b)		// dot product
+{
+	return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+V3f operator%(V3f a, V3f b)			// cross product
+{
+	V3f c;
+	c.x = a.y * b.z - a.z * b.y;
+	c.y = -a.x * b.z + a.z * b.x;
+	c.z = a.x * b.y - a.y * b.x;
+	return c;
+}
+
+float VecLength(V3f v)				// vector length
+{
+	return sqrt(v * v);
+}
+
+V3f VecNormalize(V3f v)				// vector normalization
+{
+	return (1.0 / VecLength(v) * v);
+}
 
 struct Vec3d {
 	//public members by default
@@ -433,6 +502,85 @@ void drawSpongeCulled(double x, double y, double z, double size, int r, std::vec
 	}
 }
 
+int recursionLevel = 0;
+bool updateMesh = true;
+float spin = 1.0f;
+float spin2 = 1.0f;
+
+float scale = 1.0f;
+
+void key_callback(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+	if (key == GLFW_KEY_E && action == GLFW_PRESS && recursionLevel <=3) {
+		recursionLevel++;
+		updateMesh = true;
+	}
+	else if (key == GLFW_KEY_D && action == GLFW_PRESS && recursionLevel>=1) {
+		recursionLevel--;
+		updateMesh = true;
+	}
+	else if (key == GLFW_KEY_W && action == GLFW_PRESS ) {
+		spin--;
+	}
+	else if (key == GLFW_KEY_Q && action == GLFW_PRESS) {
+		spin++;
+	}
+	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
+		spin2--;
+	}
+	else if (key == GLFW_KEY_X && action == GLFW_PRESS) {
+		spin2++;
+	}
+	else if (key == GLFW_KEY_A && action == GLFW_PRESS) {
+		scale+=0.1f;
+	}
+	else if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
+		scale -= 0.1f;
+	}
+		
+}
+double xPrev = 0;
+double yPrev = 0;
+void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
+{
+	if (xPrev == 0 || yPrev == 0) {
+		xPrev = xpos;
+		yPrev = ypos;
+		return;
+	}
+	else if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_RELEASE){
+		return;
+	}
+	else {
+		spin -= xpos - xPrev;
+		double s = fmod(spin, 360);
+		spin2 -= (ypos - yPrev);
+		if (spin2 < -90)
+		{
+			spin2 = -90;
+		}
+		else if (spin2 > 90) {
+			spin2 = 90;
+		}
+		
+		xPrev = xpos;
+		yPrev = ypos;
+	}
+}
+int m_width = 800;
+int m_height = 800;
+bool updateWindow = true;
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	m_width = width;
+	m_height = height;
+	updateWindow = true;
+}
+
+
+
+
+
 int main() {
   GLFWwindow *window = nullptr;
 
@@ -440,7 +588,8 @@ int main() {
   if (!glfwInit()) {
     exit(EXIT_FAILURE);
   }
-  
+
+
   // Currently installed version of OpenGL
   int glfwMajor, glfwMinor, glfwRevision;
   glfwGetVersion(&glfwMajor, &glfwMinor, &glfwRevision);
@@ -452,7 +601,7 @@ int main() {
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
 
   //Create window
-  window = glfwCreateWindow(800, 800, "Tut03", NULL, NULL);
+  window = glfwCreateWindow(m_height, m_width, "Tut03", NULL, NULL);
   if (!window) {
     glfwTerminate();
     exit(EXIT_FAILURE);
@@ -466,20 +615,32 @@ int main() {
 
   glfwSwapInterval(1); // vsync
   
-  float spin = 1.0f;
-  glScaled(.2,.2,.2);
-  glTranslatef(0, 0,0.0f);
-  glRotatef(-10, 1, 0, 0.00);
+  
+
+  glTranslatef(0, 0, 0);
+  //
   std::vector<bool> faces = { true, true, true, true, true, true };
   std::vector<Triangle> tris = {};
-  drawSpongeTris(-2.5, 2.5, 2.5, 5, 4, faces, tris);
+  //drawSpongeTris(-2.5, 2.5, 2.5, 5, recursionLevel, faces, tris);
   std::cout << tris.size() << "\n";
   // Rendering loop
+  glfwSetKeyCallback(window, key_callback);
+  glfwSetCursorPosCallback(window, cursor_position_callback);
+  glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
   while (!glfwWindowShouldClose(window)) {
 
+	  if (updateMesh) {
+		  tris = {};
+		  drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, tris);
+		  updateMesh = false;
+	  }
 	  //spin = spin - .5; // inc for spin
 	  if (spin < 360){
 		  //spin = spin + 360;
+	  }
+	  if (updateWindow) {
+		  glViewport(0, 0, m_width, m_height);
+		  updateWindow = false;
 	  }
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -487,7 +648,7 @@ int main() {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_FRONT);
 	glDepthFunc(GL_LESS);
-
+	//glu::gluLookAt(0,0,-5,0,0,0,0,1,0);
 	glBegin(GL_TRIANGLES);
 	
     for (auto t : tris) {
@@ -503,7 +664,15 @@ int main() {
 
 	//drawSponge(-2.5, 2.5, 2.5, 5, 5, faces);
 	glEnd();
-	glRotatef(spin, 1.0,1.0,1.0);
+
+	glMatrixMode(GL_MODELVIEW);
+	glPopMatrix();
+	glPushMatrix();
+	//glRotatef(90, 1, 0, 0.00);
+	glRotatef(spin, 0,1.0,0);
+	glRotatef(spin2, 1, 0, 0);
+	glScaled(scale, scale, scale);
+	//glRotatef(spin3, 0, 0, 1);
 	//Swap current scene with next scene
     glfwSwapBuffers(window);
 
