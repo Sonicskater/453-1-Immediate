@@ -8,10 +8,9 @@
 #include "glad/glad.h"
 
 //
-
 #include "GLFW/glfw3.h"
 #include <cmath>
-//#include "common_matrices.cpp"
+
 
 
 #define RAD 57.29577951
