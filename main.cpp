@@ -415,9 +415,16 @@ void draw(std::vector<Triangle> tris) {
 	for (auto t : tris) {
 
 		glColor3d(t.m_color.x, t.m_color.y, t.m_color.z);
+		if (!per) {
+			glVertex3d(t[2].x, t[2].y, t[2].z);
+			glVertex3d(t[1].x, t[1].y, t[1].z);
+			glVertex3d(t[0].x, t[0].y, t[0].z);
+		}
+		else {
 			glVertex3d(t[0].x, t[0].y, t[0].z);
 			glVertex3d(t[1].x, t[1].y, t[1].z);
 			glVertex3d(t[2].x, t[2].y, t[2].z);
+		}
 		
 	}
 	glEnd();
