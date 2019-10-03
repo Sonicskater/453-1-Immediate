@@ -27,7 +27,6 @@ set(GLAD_SOURCES
     )
 add_library(glad ${GLAD_SOURCES})
 target_include_directories(glad PRIVATE ${GLAD_DIR}/include)
-
 #[[
         Executable
 ]]
@@ -68,6 +67,8 @@ target_include_directories(Tut02
     PRIVATE external
     PRIVATE ${GLFW_DIR}/include
     PRIVATE ${GLAD_DIR}/include
+	${PROJECT_SOURCE_DIR}/include
+    ${PROJECT_SOURCE_DIR}/src
     )
 
 
