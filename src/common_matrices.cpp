@@ -3,7 +3,7 @@
  * http://www.songho.ca/opengl/gl_projectionmatrix.html
  */
 
-#include "inlcude/common_matrices.hpp"
+#include "common_matrices.hpp"
 
 #include <cmath>
 
@@ -194,7 +194,6 @@ Mat4f symmetricFrustumProjection(float r, float t, float n, float f) {
   return symmetricFrustum;
 }
 
-
 Mat4f inverseSymmetricFrustumProjection(float r, float t, float n, float f) {
   float a00 = r / n;
   float a11 = t / n;
@@ -217,8 +216,6 @@ Mat4f perspectiveProjection(float fovDegrees, float aspectRatio, float zNear,
 
   return symmetricFrustumProjection(right, top, zNear, zFar);
 }
-
-
 
 Mat4f inversePerspectiveProjection(float fovDegrees, float aspectRatio,
                                    float zNear, float zFar) {

@@ -1,4 +1,4 @@
-#include "inlcude/mat4f.hpp"
+#include "mat4f.hpp"
 
 #include <algorithm>
 #include <cassert>

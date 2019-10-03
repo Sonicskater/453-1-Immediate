@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0)
-project(Tut02 VERSION 1.0 LANGUAGES C CXX)
+project(Assignment1 VERSION 1.0 LANGUAGES C CXX)
 
 #[[
         OpenGL
@@ -27,34 +27,70 @@ set(GLAD_SOURCES
     )
 add_library(glad ${GLAD_SOURCES})
 target_include_directories(glad PRIVATE ${GLAD_DIR}/include)
+
+#[[
+        Headers
+]]
+set(HEADERS
+   include/vec3f.hpp
+   include/triangle.hpp
+   include/sierpinski.hpp
+   include/shader_tools.hpp
+   include/mat4f.hpp
+   include/common_matrices.hpp
+   include/cube.hpp
+   )
+
+#[[
+        Sources
+]]
+set(SOURCES
+    src/main.cpp
+    src/vec3f.cpp
+    src/triangle.cpp
+    src/sierpinski.cpp
+    src/shader_tools.cpp
+    src/mat4f.cpp
+    src/common_matrices.cpp
+    src/cube.cpp
+	src/main2.cpp
+    )
+
 #[[
         Executable
 ]]
-add_executable(${PROJECT_NAME} "main.cpp")
+add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 
-target_compile_definitions(Tut02
+target_include_directories(${PROJECT_NAME}
+    PRIVATE include
+    PRIVATE external
+    PRIVATE ${GLFW_DIR}/include
+    PRIVATE ${GLAD_DIR}/include
+    )
+
+target_compile_definitions(${PROJECT_NAME}
     PRIVATE -DGLFW_INCLUDE_NONE
     )
 
 if(MSVC)
-    target_compile_definitions(Tut02
+    target_compile_definitions(${PROJECT_NAME}
         PRIVATE -D_USE_MATH_DEFINES
         )
 endif()
 
-set_target_properties(Tut02 PROPERTIES
+set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 11
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
     MACOSX_BUNDLE TRUE
-    MACOSX_FRAMEWORK_IDENTIFIER org.cmake.Tut02
+    MACOSX_FRAMEWORK_IDENTIFIER org.cmake.${PROJECT_NAME}
     )
 
-target_compile_definitions(Tut02
+target_compile_definitions(${PROJECT_NAME}
     PRIVATE GLFW_INCLUDE_NONE
     )
 
-target_link_libraries(Tut02
+target_link_libraries(${PROJECT_NAME}
     PRIVATE ${OPENGL_gl_LIBRARY}
     PRIVATE glfw
     PRIVATE ${GLFW_LIBRARIES}
@@ -63,12 +99,5 @@ target_link_libraries(Tut02
     PRIVATE ${CMAKE_DL_LIBS}
     )
 
-target_include_directories(Tut02
-    PRIVATE external
-    PRIVATE ${GLFW_DIR}/include
-    PRIVATE ${GLAD_DIR}/include
-	${PROJECT_SOURCE_DIR}/include
-    ${PROJECT_SOURCE_DIR}/src
-    )
 
 
