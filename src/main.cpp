@@ -10,6 +10,7 @@
 //
 
 #include "GLFW/glfw3.h"
+#include <string>
 
 
 #define RAD 57.29577951
@@ -306,6 +307,7 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 int m_width = 800;
 int m_height = 800;
 bool updateWindow = true;
+void clear();
 void draw(std::vector<Triangle> tris);
 
 GLfloat* symmetricFrustumProjectionGl(float r, float t, float n, float f) {
@@ -408,8 +410,14 @@ void applyTransform() {
 	
 }
 
-void draw(std::vector<Triangle> tris) {
+void clear()
+{
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+}
+
+void draw(std::vector<Triangle> tris) {
+
 	glBegin(GL_TRIANGLES);
 	for (auto t : tris) {
 
@@ -423,7 +431,7 @@ void draw(std::vector<Triangle> tris) {
 
 
 	//Swap current scene with next scene
-	glfwSwapBuffers(window);
+
 
 }
 
@@ -439,8 +447,9 @@ int main() {
   printGlVersion();
 
   //Assign OpenGL version for program
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
   //Create window
   window = glfwCreateWindow(m_height, m_width, "Tut03", NULL, NULL);
@@ -455,9 +464,84 @@ int main() {
 
   std::vector<bool> faces = { true, true, true, true, true, true };
 
+  //setup vertex buffer
+  unsigned int VBO;
+  glGenBuffers(1, &VBO);
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  
+  //setup vertex shader
+  const char* vertex_shader = "#version 330 core\n"
+	  "layout(location = 0) in vec3 aPos;\n"
+
+	  "void main()\n"
+	  "{\n"
+	  "gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
+	  "}\0";
+
+  unsigned int vertexShader;
+  vertexShader = glCreateShader(GL_VERTEX_SHADER);
+  glShaderSource(vertexShader, 1, &vertex_shader, NULL);
+  glCompileShader(vertexShader);
+
+  const char* fragment_shader = "#version 330 core\n"
+	  "out vec4 FragColor;\n"
+
+	  "void main()\n"
+	  "{\n"
+	  "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
+	  "}\0";
+
+  //setup fragment shader
+  unsigned int fragmentShader;
+  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+  glShaderSource(fragmentShader, 1, &fragment_shader, NULL);
+  glCompileShader(fragmentShader);
+
+  //setup and compile shader pipeline
+  unsigned int shaderProgram;
+  shaderProgram = glCreateProgram();
+
+  glAttachShader(shaderProgram, vertexShader);
+  glAttachShader(shaderProgram, fragmentShader);
+  glLinkProgram(shaderProgram);
+
+  //set current shader program
+  glUseProgram(shaderProgram);
+
+  //cleanup now uselss shader code objects.
+  glDeleteShader(vertexShader);
+  glDeleteShader(fragmentShader);
+
+
+  // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
+// 1. bind Vertex Array Object
+
+  unsigned int VAO;
+  glGenVertexArrays(1, &VAO);
+
+  float vertices[] = {
+-0.5f, -0.5f, 0.0f,
+ 0.5f, -0.5f, 0.0f,
+ 0.0f,  0.5f, 0.0f
+  };
+
+  glBindVertexArray(VAO);
+  // 2. copy our vertices array in a buffer for OpenGL to use
+  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+  // 3. then set our vertex attributes pointers
+  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+  glEnableVertexAttribArray(0);
 
   // Rendering loop
   while (!glfwWindowShouldClose(window)) {
+
+	  clear();
+
+	  //draw
+	  glUseProgram(shaderProgram);
+	  glBindVertexArray(VAO);
+	  glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	  if (updateMesh) {
 		  triangles = {};
@@ -469,10 +553,13 @@ int main() {
 		  updateWindow = false;
 	  }
 	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	  draw(triangles);
-	  applyTransform();
 
+	  //draw(triangles);
 
+	  
+	  //applyTransform();
+
+	  glfwSwapBuffers(window);
       glfwPollEvents(); // will process event queue and carry on
   }
 
