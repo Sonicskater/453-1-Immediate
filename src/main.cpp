@@ -11,6 +11,11 @@
 
 #include "GLFW/glfw3.h"
 #include <string>
+#include <vec3f.hpp>
+#include <mat4f.hpp>
+#include <common_matrices.hpp>
+#include <shader_tools.hpp>
+
 
 
 #define RAD 57.29577951
@@ -97,43 +102,36 @@ struct Vec3d {
 	GLdouble z = 0.f;
 };
 
+struct Vertex {
+	Vertex() = default;
+	Vertex(Vec3d position, Vec3d color) : position(position), color(color) {}
+
+	Vec3d position;
+	Vec3d color;
+};
+
 Vec3d add(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y, a.z + b.z); }
 Vec3d operator+(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y,a.z + b.z); }
 
 class Triangle {
 	//Private members by default
-	Vec3d m_verts[3];	
+	//Vec3d m_verts[3];
+
 	
 public:
+	Vec3d a, b, c;
 	Vec3d m_color;
 	Triangle() = default;
-	Triangle(Vec3d a, Vec3d b, Vec3d c, Vec3d color= yellow) {
-		m_verts[0] = a;
-		m_verts[1] = b;
-		m_verts[2] = c;
+	Triangle(Vec3d m_a, Vec3d m_b, Vec3d m_c, Vec3d color= yellow) {
+		a = m_a;
+		b = m_b;
+		c = m_c;
 		m_color = color;
 	}
 
 	//functions to get/read value
-	Vec3d a() const { return m_verts[0]; }
-	Vec3d b() const { return m_verts[1]; }
-	Vec3d c() const { return m_verts[2]; }
 
-	Vec3d operator[](int index) const { return m_verts[index]; }
-
-	//functions to set value
-	Vec3d &a() { return m_verts[0]; }
-	Vec3d &b() { return m_verts[1]; }
-	Vec3d &c() { return m_verts[2]; }
-
-	Vec3d &operator[](int index) { return m_verts[index]; }	
 };
-
-void drawTri(Triangle t) {
-	glVertex2f(t[0].x, t[0].y);
-	glVertex2f(t[1].x, t[1].y);
-	glVertex2f(t[2].x, t[2].y);
-}
 
 void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], GLdouble bottomLeft[], GLfloat color[], std::vector<Triangle> &tris) {
 
@@ -331,14 +329,17 @@ GLfloat* perspectiveProjectionGl(float fovDegrees, float aspectRatio, float zNea
 
 	return symmetricFrustumProjectionGl(right, top, zNear, zFar);
 }
+
 std::vector<Triangle> triangles = {};
+std::vector<Vertex> vecs = {};
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 {
 	m_width = width;
 	m_height = height;
 	updateWindow = true;
 	glViewport(0, 0, m_width, m_height);
-	draw(triangles);
+	//draw(triangles);
 }
 
 void setupWindow(GLFWwindow *window) {
@@ -416,24 +417,11 @@ void clear()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
-void draw(std::vector<Triangle> tris) {
-
-	glBegin(GL_TRIANGLES);
-	for (auto t : tris) {
-
-		glColor3d(t.m_color.x, t.m_color.y, t.m_color.z);
-			glVertex3d(t[0].x, t[0].y, t[0].z);
-			glVertex3d(t[1].x, t[1].y, t[1].z);
-			glVertex3d(t[2].x, t[2].y, t[2].z);
-		
-	}
-	glEnd();
 
 
-	//Swap current scene with next scene
+void prepMesh(std::vector<bool>& faces, unsigned int VBO);
 
 
-}
 
 
 int main() {
@@ -470,26 +458,55 @@ int main() {
   glBindBuffer(GL_ARRAY_BUFFER, VBO);
   
   //setup vertex shader
-  const char* vertex_shader = "#version 330 core\n"
-	  "layout(location = 0) in vec3 aPos;\n"
+  const char* vertex_shader = R"vs(
 
-	  "void main()\n"
-	  "{\n"
-	  "gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-	  "}\0";
+			#version 330 core
+      layout (location = 0) in vec3 position;
+      layout (location = 1) in vec3 color;
+
+      struct Data
+      {
+        vec3 color;
+      };
+
+      out Data data;
+
+      uniform mat4 MVP;
+
+			void main()
+			{
+        gl_Position = MVP * vec4(position, 1.);
+
+        data.color = color;
+			}
+
+			)vs";
 
   unsigned int vertexShader;
   vertexShader = glCreateShader(GL_VERTEX_SHADER);
   glShaderSource(vertexShader, 1, &vertex_shader, NULL);
   glCompileShader(vertexShader);
 
-  const char* fragment_shader = "#version 330 core\n"
-	  "out vec4 FragColor;\n"
+  openGL::checkShaderCompileStatus(vertexShader);
 
-	  "void main()\n"
-	  "{\n"
-	  "FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-	  "}\0";
+  const char* fragment_shader = R"fs(
+
+			#version 330 core
+
+      struct Data
+      {
+        vec3 color;
+      };
+
+      in Data data;
+
+      out vec4 fragmentColor;
+			void main()
+			{
+        fragmentColor = vec4(data.color, 1.f);
+			}
+
+			)fs";
 
   //setup fragment shader
   unsigned int fragmentShader;
@@ -498,9 +515,8 @@ int main() {
   glCompileShader(fragmentShader);
 
   //setup and compile shader pipeline
-  unsigned int shaderProgram;
+  GLint shaderProgram;
   shaderProgram = glCreateProgram();
-
   glAttachShader(shaderProgram, vertexShader);
   glAttachShader(shaderProgram, fragmentShader);
   glLinkProgram(shaderProgram);
@@ -514,10 +530,7 @@ int main() {
 
 
   // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
-// 1. bind Vertex Array Object
-
-  unsigned int VAO;
-  glGenVertexArrays(1, &VAO);
+  
 
   float vertices[] = {
 -0.5f, -0.5f, 0.0f,
@@ -525,46 +538,120 @@ int main() {
  0.0f,  0.5f, 0.0f
   };
 
-  glBindVertexArray(VAO);
-  // 2. copy our vertices array in a buffer for OpenGL to use
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-  glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-  // 3. then set our vertex attributes pointers
-  glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-  glEnableVertexAttribArray(0);
+  // 1. bind Vertex Array Object
+  unsigned int VAO;
+  glGenVertexArrays(1, &VAO);
 
   // Rendering loop
+
+  clear();
+  prepMesh(faces, VBO);
+
+  Vec3d cameraPos = Vec3d(0.0f, 0.0f, 3.0f);
   while (!glfwWindowShouldClose(window)) {
 
-	  clear();
 
-	  //draw
-	  glUseProgram(shaderProgram);
-	  glBindVertexArray(VAO);
-	  glDrawArrays(GL_TRIANGLES, 0, 3);
 
-	  if (updateMesh) {
+	  if (updateMesh || vecs.size() == 0) {
 		  triangles = {};
 		  drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
 		  updateMesh = false;
+		  std::cout << "made thing";
+		  vecs.clear();
+		  for (auto t : triangles) {
+			  vecs.push_back(Vertex(t.c, t.m_color));
+			  vecs.push_back(Vertex(t.b, t.m_color));
+			  vecs.push_back(Vertex(t.a, t.m_color));
+
+
+
+		  }
+		  std::cout << vecs.size() << "\n";
 	  }
-	  if (updateWindow) {
+	      glBindVertexArray(VAO);
+		  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+		  
+		  // 3. then set our vertex attributes pointers
+		  glEnableVertexAttribArray(0);          // match layout # in shader
+		  glVertexAttribPointer(                 //
+			  0,                                 // attribute layout # (in shader)
+			  3,                                 // number of coordinates per vertex
+			  GL_DOUBLE,                          // type
+			  GL_FALSE,                          // normalized?
+			  sizeof(Vertex),                    // stride
+			  (void*)offsetof(Vertex, position) // array buffer offset
+		  );
 
-		  updateWindow = false;
-	  }
-	  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		  glEnableVertexAttribArray(1);         // match layout # in shader
+		  glVertexAttribPointer(                //
+			  1,                                // attribute layout # (in shader)
+			  3,                                // number of coordinates per vertex
+			  GL_DOUBLE,                         // type
+			  GL_FALSE,                         // normalized?
+			  sizeof(Vertex),                   // stride
+			  (void*)(offsetof(Vertex, color)) // array buffer offset
+		  );
 
-	  //draw(triangles);
 
+		  glBindVertexArray(0);
+
+		  glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
+		  clear();
+		  //draw
+
+		  //glBindVertexArray(0);
+
+		  std::cout << "yeet";
+
+		  if (updateWindow) {
+
+			  updateWindow = false;
+		  }
+		  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+		  //draw(triangles);
+
+
+		  //applyTransform();
+		  math::Mat4f transform = math::identity();
+		  //transform = transform * math::translateMatrix(0,0,0);
+		  transform = transform * math::rotateAboutYMatrix(-spin);
+		  transform = transform * math::rotateAboutXMatrix(spin2);
+		  transform = transform * math::uniformScaleMatrix(scale);
+	
+
+		  glUseProgram(shaderProgram);
+		  GLint transformLoc = glGetUniformLocation(shaderProgram, "MVP");
+		  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform.data());
+
+		  glBindVertexArray(VAO);
+		  glDrawArrays(GL_TRIANGLES, 0, vecs.size());
+		  glfwSwapBuffers(window);
+		  glfwPollEvents(); // will process event queue and carry on
 	  
-	  //applyTransform();
-
-	  glfwSwapBuffers(window);
-      glfwPollEvents(); // will process event queue and carry on
   }
 
   glfwDestroyWindow(window);
   glfwTerminate();
 
   return EXIT_SUCCESS;
+}
+
+void prepMesh(std::vector<bool>& faces, unsigned int VBO)
+{
+	triangles = {};
+	drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
+	updateMesh = false;
+	std::cout << "made thing";
+	vecs.clear();
+	for (auto t : triangles) {
+
+	}
+	std::cout << vecs.size() << "\n";
+	// 2. copy our vertices array in a buffer for OpenGL to use
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vec3d), vecs.data(), GL_STATIC_DRAW);
+	// 3. then set our vertex attributes pointers
+	glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, sizeof(Vec3d), (void*)0);
+	glEnableVertexAttribArray(0);
 }

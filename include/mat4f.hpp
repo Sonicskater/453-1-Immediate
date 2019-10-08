@@ -3,6 +3,7 @@
 #include <array>
 #include <initializer_list>
 #include <iosfwd>
+#include <glad\include\glad\glad.h>
 
 namespace math {
 
@@ -10,7 +11,7 @@ class Mat4f {
 public:
   enum { DIMENSION = 4, NUMBER_ELEMENTS = 16 };
 
-  using array16f = std::array<float, NUMBER_ELEMENTS>;
+  using array16f = std::array<GLfloat, NUMBER_ELEMENTS>;
 
 public:
   Mat4f() = default;
