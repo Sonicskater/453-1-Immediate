@@ -471,11 +471,13 @@ int main() {
 
       out Data data;
 
-      uniform mat4 MVP;
+		uniform mat4 transform;
+		uniform mat4 projection;
+		uniform mat4 view;
 
 			void main()
 			{
-        gl_Position = MVP * vec4(position, 1.);
+        gl_Position =  projection  * view * transform * vec4(position, 1.);
 
         data.color = color;
 			}
@@ -547,11 +549,11 @@ int main() {
   clear();
   prepMesh(faces, VBO);
 
-  Vec3d cameraPos = Vec3d(0.0f, 0.0f, 3.0f);
+  math::Vec3f cameraPos = math::Vec3f(0.0f, 0.0f, 10.0f);
   while (!glfwWindowShouldClose(window)) {
 
 
-
+	  glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	  if (updateMesh || vecs.size() == 0) {
 		  triangles = {};
 		  drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
@@ -562,12 +564,10 @@ int main() {
 			  vecs.push_back(Vertex(t.c, t.m_color));
 			  vecs.push_back(Vertex(t.b, t.m_color));
 			  vecs.push_back(Vertex(t.a, t.m_color));
-
-
-
 		  }
 		  std::cout << vecs.size() << "\n";
 	  }
+	      //glFrontFace(GL_FRONT_AND_BACK);
 	      glBindVertexArray(VAO);
 		  glBindBuffer(GL_ARRAY_BUFFER, VBO);
 		  
@@ -607,22 +607,46 @@ int main() {
 
 			  updateWindow = false;
 		  }
-		  //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		  //glPolygonMode(GL_FRONT_AND_BACK,GL_POLYGON);
 
 		  //draw(triangles);
 
 
+		  float radius = 10.0f;
+		  float camX = sin(glfwGetTime()) * radius;
+		  float camZ = cos(glfwGetTime()) * radius;
+
 		  //applyTransform();
 		  math::Mat4f transform = math::identity();
-		  //transform = transform * math::translateMatrix(0,0,0);
+		  //transform = transform * math::translateMatrix(0,0,-1);
+
 		  transform = transform * math::rotateAboutYMatrix(-spin);
 		  transform = transform * math::rotateAboutXMatrix(spin2);
 		  transform = transform * math::uniformScaleMatrix(scale);
-	
+
+		  math::Mat4f projection = math::identity();// *math::perspectiveProjection(90, 1, 0.1, 1000);
+		  projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
+		  //auto projection = perspectiveProjectionGl(45, 1, 0.1, 10);
+		  math::Mat4f view = math::identity();
+		  //view = math::lookAtMatrix({ camX, 0 ,camZ}, { 0,0,0 }, { 0,1,0 });
+		  //view = view * math::translateMatrix(0, 0, -10);
+
 
 		  glUseProgram(shaderProgram);
-		  GLint transformLoc = glGetUniformLocation(shaderProgram, "MVP");
+
+		  glMatrixMode(GL_MODELVIEW);
+		  GLint transformLoc = glGetUniformLocation(shaderProgram, "transform");
 		  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform.data());
+
+
+		  GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		  glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view.data());
+
+		  glMatrixMode(GL_PROJECTION);
+
+		  GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+		  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projection.data());
+
 
 		  glBindVertexArray(VAO);
 		  glDrawArrays(GL_TRIANGLES, 0, vecs.size());
