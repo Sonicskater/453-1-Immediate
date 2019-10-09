@@ -15,6 +15,9 @@
 #include <mat4f.hpp>
 #include <common_matrices.hpp>
 #include <shader_tools.hpp>
+#include <glm.hpp>
+#include <ext\matrix_transform.hpp>
+#include <gtc\type_ptr.hpp>
 
 
 
@@ -302,8 +305,8 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 		yPrev = ypos;
 	}
 }
-int m_width = 800;
-int m_height = 800;
+float m_width = 800;
+float m_height = 800;
 bool updateWindow = true;
 void clear();
 void draw(std::vector<Triangle> tris);
@@ -549,7 +552,7 @@ int main() {
   clear();
   prepMesh(faces, VBO);
 
-  math::Vec3f cameraPos = math::Vec3f(0.0f, 0.0f, 10.0f);
+  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
   while (!glfwWindowShouldClose(window)) {
 
 
@@ -561,9 +564,9 @@ int main() {
 		  std::cout << "made thing";
 		  vecs.clear();
 		  for (auto t : triangles) {
-			  vecs.push_back(Vertex(t.c, t.m_color));
-			  vecs.push_back(Vertex(t.b, t.m_color));
 			  vecs.push_back(Vertex(t.a, t.m_color));
+			  vecs.push_back(Vertex(t.b, t.m_color));
+			  vecs.push_back(Vertex(t.c, t.m_color));
 		  }
 		  std::cout << vecs.size() << "\n";
 	  }
@@ -607,7 +610,7 @@ int main() {
 
 			  updateWindow = false;
 		  }
-		  //glPolygonMode(GL_FRONT_AND_BACK,GL_POLYGON);
+		  glPolygonMode(GL_FRONT_AND_BACK,GL_POLYGON);
 
 		  //draw(triangles);
 
@@ -617,17 +620,20 @@ int main() {
 		  float camZ = cos(glfwGetTime()) * radius;
 
 		  //applyTransform();
-		  math::Mat4f transform = math::identity();
+		  //math::Mat4f transformold = math::identity();
+	      glm::mat4 transform = glm::mat4(1.0f);
 		  //transform = transform * math::translateMatrix(0,0,-1);
 
-		  transform = transform * math::rotateAboutYMatrix(-spin);
-		  transform = transform * math::rotateAboutXMatrix(spin2);
-		  transform = transform * math::uniformScaleMatrix(scale);
-
-		  math::Mat4f projection = math::identity();// *math::perspectiveProjection(90, 1, 0.1, 1000);
-		  projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
+		  transform = glm::rotate(transform, glm::radians(spin), glm::vec3(0, 1, 0));
+		  //transform = transform * math::rotateAboutXMatrix(spin2);
+		  //transform = transform * math::uniformScaleMatrix(scale);
+		  glm::mat4 test = glm::mat4();
+		  glm::mat4 projection = glm::mat4(1.0f);
+		  //projection = glm::ortho(0.0f, m_width, 0.0f, m_height, 0.1f, 100.0f);
+		  //projection = glm::perspective( glm::radians(90.0f), 1.0f, 0.1f, 100.0f);// *math::perspectiveProjection(90, 1, 0.1, 1000);
+		  //projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
 		  //auto projection = perspectiveProjectionGl(45, 1, 0.1, 10);
-		  math::Mat4f view = math::identity();
+		  glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0,0,0), glm::vec3(0,1,0));
 		  //view = math::lookAtMatrix({ camX, 0 ,camZ}, { 0,0,0 }, { 0,1,0 });
 		  //view = view * math::translateMatrix(0, 0, -10);
 
@@ -636,16 +642,16 @@ int main() {
 
 		  glMatrixMode(GL_MODELVIEW);
 		  GLint transformLoc = glGetUniformLocation(shaderProgram, "transform");
-		  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, transform.data());
+		  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
 
 		  GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-		  glUniformMatrix4fv(viewLoc, 1, GL_FALSE, view.data());
+		  glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
 		  glMatrixMode(GL_PROJECTION);
 
 		  GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-		  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, projection.data());
+		  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
 
 		  glBindVertexArray(VAO);
