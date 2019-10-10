@@ -270,10 +270,10 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 		per = !per;
 	}
 	else if (key == GLFW_KEY_A && action == GLFW_PRESS) {
-		scale+=0.1f;
+		scale-=0.1f;
 	}
 	else if (key == GLFW_KEY_Z && action == GLFW_PRESS) {
-		scale -= 0.1f;
+		scale += 0.1f;
 	}
 		
 }
@@ -616,8 +616,8 @@ int main() {
 
 
 		  float radius = 10.0f;
-		  float camX = sin(glfwGetTime()) * radius;
-		  float camZ = cos(glfwGetTime()) * radius;
+		  float camX = sin(glfwGetTime()) * scale;
+		  float camZ = cos(glfwGetTime()) * scale;
 
 		  //applyTransform();
 		  //math::Mat4f transformold = math::identity();
@@ -627,13 +627,14 @@ int main() {
 		  transform = glm::rotate(transform, glm::radians(spin), glm::vec3(0, 1, 0));
 		  //transform = transform * math::rotateAboutXMatrix(spin2);
 		  //transform = transform * math::uniformScaleMatrix(scale);
+		  //transform = glm::scale(transform, glm::vec3(scale, scale, scale));
 		  glm::mat4 test = glm::mat4();
 		  glm::mat4 projection = glm::mat4(1.0f);
 		  //projection = glm::ortho(0.0f, m_width, 0.0f, m_height, 0.1f, 100.0f);
-		  //projection = glm::perspective( glm::radians(90.0f), 1.0f, 0.1f, 100.0f);// *math::perspectiveProjection(90, 1, 0.1, 1000);
+		  projection = glm::perspective( glm::radians(90.0f), m_width/m_height, 0.1f, 100.0f);// *math::perspectiveProjection(90, 1, 0.1, 1000);
 		  //projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
 		  //auto projection = perspectiveProjectionGl(45, 1, 0.1, 10);
-		  glm::mat4 view = glm::lookAt(cameraPos, glm::vec3(0,0,0), glm::vec3(0,1,0));
+		  glm::mat4 view = glm::lookAt(glm::vec3(camX, 0, camZ), glm::vec3(0,0,0), glm::vec3(0,1,0));
 		  //view = math::lookAtMatrix({ camX, 0 ,camZ}, { 0,0,0 }, { 0,1,0 });
 		  //view = view * math::translateMatrix(0, 0, -10);
 
