@@ -15,9 +15,9 @@
 #include <mat4f.hpp>
 #include <common_matrices.hpp>
 #include <shader_tools.hpp>
-#include <glm.hpp>
-#include <ext\matrix_transform.hpp>
-#include <gtc\type_ptr.hpp>
+#include <glm\glm.hpp>
+#include <glm\ext\matrix_transform.hpp>
+#include <glm\gtc\type_ptr.hpp>
 
 
 

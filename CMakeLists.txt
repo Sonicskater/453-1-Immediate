@@ -19,13 +19,12 @@ add_subdirectory(${GLFW_DIR})
 #[[
         GLM
 ]]
-set(GLM_DIR external/glm/glm)
+set(GLM_DIR external/glm)
 set(GLM_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLFW example programs")
 set(GLM_BUILD_TESTS OFF CACHE INTERNAL "Build the GLFW test programs")
 set(GLM_BUILD_DOCS OFF CACHE INTERNAL "Build the GLFW documentation")
 set(GLM_INSTALL OFF CACHE INTERNAL "Generate installation target")
-
-include_directories(glm PRIVATE ${GLM_DIR})
+add_subdirectory(${GLM_DIR})
 #[[
         glad
 ]]
@@ -54,18 +53,7 @@ set(HEADERS
 #[[
         Sources
 ]]
-set(SOURCES
-    src/main.cpp
-    src/vec3f.cpp
-    src/triangle.cpp
-    src/sierpinski.cpp
-    src/shader_tools.cpp
-    src/mat4f.cpp
-    src/common_matrices.cpp
-    src/cube.cpp
-	src/main2.cpp
-    )
-
+file(GLOB SOURCES "src/*.h" "src/*.cpp")
 #[[
         Executable
 ]]

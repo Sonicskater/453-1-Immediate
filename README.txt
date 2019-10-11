@@ -4,9 +4,10 @@ To compile the CMake file:
 > cd build
 > cmake ..
 > make
-> ./Tut02
 
-To compile again:
-(From the directory with "Makefile")
-> make
-> ./Tut02
+1: Click and drag to turn shape.
+2: press E/D to increase/decrease recursion level. Bounded between 0 and 4 levels of recursion.
+3: press W to toggle the perspective projection.
+4: press A/Z or scroll to zoom in/out.
+
+CODE RESUBMITTED WITH GLM ADDITION
