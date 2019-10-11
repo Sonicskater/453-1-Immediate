@@ -116,7 +116,7 @@ struct Vertex {
 Vec3d add(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y, a.z + b.z); }
 Vec3d operator+(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y,a.z + b.z); }
 
-class Triangle {
+struct Triangle {
 	//Private members by default
 	//Vec3d m_verts[3];
 
@@ -290,15 +290,15 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 		return;
 	}
 	else {
-		spin -= xpos - xPrev;
-		double s = fmod(spin, 360);
-		spin2 -= (ypos - yPrev);
-		if (spin2 < -90)
+		spin -= 0.1 * (xpos - xPrev);
+		//double s = fmod(spin, 360);
+		spin2 -= 0.1 * (ypos - yPrev);
+		if (spin2 < -89)
 		{
-			spin2 = -90;
+			spin2 = -89;
 		}
-		else if (spin2 > 90) {
-			spin2 = 90;
+		else if (spin2 > 89) {
+			spin2 = 89;
 		}
 		
 		xPrev = xpos;
@@ -345,6 +345,15 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 	//draw(triangles);
 }
 
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+{
+	
+	scale += (yoffset*.5);
+	
+	scale = std::max(scale,1.f);
+
+}
+
 void setupWindow(GLFWwindow *window) {
 	//Set context to window
 	glfwMakeContextCurrent(window);
@@ -357,6 +366,7 @@ void setupWindow(GLFWwindow *window) {
 	glfwSetKeyCallback(window, key_callback);
 	glfwSetCursorPosCallback(window, cursor_position_callback);
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+	glfwSetScrollCallback(window, scroll_callback);
 }
 GLFWwindow* window;
 void printGlVersion() {
@@ -570,71 +580,81 @@ int main() {
 		  }
 		  std::cout << vecs.size() << "\n";
 	  }
-	      //glFrontFace(GL_FRONT_AND_BACK);
-	      glBindVertexArray(VAO);
-		  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-		  
-		  // 3. then set our vertex attributes pointers
-		  glEnableVertexAttribArray(0);          // match layout # in shader
-		  glVertexAttribPointer(                 //
-			  0,                                 // attribute layout # (in shader)
-			  3,                                 // number of coordinates per vertex
-			  GL_DOUBLE,                          // type
-			  GL_FALSE,                          // normalized?
-			  sizeof(Vertex),                    // stride
-			  (void*)offsetof(Vertex, position) // array buffer offset
-		  );
+	  //glFrontFace(GL_FRONT_AND_BACK);
+	  glBindVertexArray(VAO);
+	  glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-		  glEnableVertexAttribArray(1);         // match layout # in shader
-		  glVertexAttribPointer(                //
-			  1,                                // attribute layout # (in shader)
-			  3,                                // number of coordinates per vertex
-			  GL_DOUBLE,                         // type
-			  GL_FALSE,                         // normalized?
-			  sizeof(Vertex),                   // stride
-			  (void*)(offsetof(Vertex, color)) // array buffer offset
-		  );
+	  // 3. then set our vertex attributes pointers
+	  glEnableVertexAttribArray(0);          // match layout # in shader
+	  glVertexAttribPointer(                 //
+		  0,                                 // attribute layout # (in shader)
+		  3,                                 // number of coordinates per vertex
+		  GL_DOUBLE,                          // type
+		  GL_FALSE,                          // normalized?
+		  sizeof(Vertex),                    // stride
+		  (void*)offsetof(Vertex, position) // array buffer offset
+	  );
 
-
-		  glBindVertexArray(0);
-
-		  glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
-		  clear();
-		  //draw
-
-		  //glBindVertexArray(0);
-
-		  std::cout << "yeet";
-
-		  if (updateWindow) {
-
-			  updateWindow = false;
-		  }
-		  glPolygonMode(GL_FRONT_AND_BACK,GL_POLYGON);
-
-		  //draw(triangles);
+	  glEnableVertexAttribArray(1);         // match layout # in shader
+	  glVertexAttribPointer(                //
+		  1,                                // attribute layout # (in shader)
+		  3,                                // number of coordinates per vertex
+		  GL_DOUBLE,                         // type
+		  GL_FALSE,                         // normalized?
+		  sizeof(Vertex),                   // stride
+		  (void*)(offsetof(Vertex, color)) // array buffer offset
+	  );
 
 
-		  float radius = 10.0f;
-		  float camX = sin(glfwGetTime()) * scale;
-		  float camZ = cos(glfwGetTime()) * scale;
+	  glBindVertexArray(0);
 
-		  //applyTransform();
-		  //math::Mat4f transformold = math::identity();
-	      glm::mat4 transform = glm::mat4(1.0f);
-		  //transform = transform * math::translateMatrix(0,0,-1);
+	  glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
+	  clear();
+	  //draw
 
-		  transform = glm::rotate(transform, glm::radians(spin), glm::vec3(0, 1, 0));
-		  //transform = transform * math::rotateAboutXMatrix(spin2);
-		  //transform = transform * math::uniformScaleMatrix(scale);
-		  //transform = glm::scale(transform, glm::vec3(scale, scale, scale));
-		  glm::mat4 test = glm::mat4();
-		  glm::mat4 projection = glm::mat4(1.0f);
-		  //projection = glm::ortho(0.0f, m_width, 0.0f, m_height, 0.1f, 100.0f);
-		  projection = glm::perspective( glm::radians(90.0f), m_width/m_height, 0.1f, 100.0f);// *math::perspectiveProjection(90, 1, 0.1, 1000);
+	  //glBindVertexArray(0);
+
+	  //std::cout << "yeet";
+
+	  if (updateWindow) {
+
+		  updateWindow = false;
+	  }
+	  glPolygonMode(GL_FRONT_AND_BACK, GL_POLYGON);
+
+	  //draw(triangles);
+
+
+	  float radius = 10.0f;
+	  float camX = sin(spin * 0.001) * scale;
+	  float camZ = cos(spin * 0.001) * scale;
+
+	  //applyTransform();
+	  //math::Mat4f transformold = math::identity();
+	  glm::mat4 transform = glm::mat4(1.0f);
+	  //transform = transform * math::translateMatrix(0,0,-1);
+
+	  transform = glm::rotate(transform, glm::radians(spin2), glm::vec3(1, 0, 0));
+	  transform = glm::rotate(transform, glm::radians(spin), glm::vec3(0, 1, 0));
+	  //transform = transform * math::rotateAboutXMatrix(spin2);
+	  //transform = transform * math::uniformScaleMatrix(scale);
+	  //transform = glm::scale(transform, glm::vec3(scale, scale, scale));
+	  glm::mat4 test = glm::mat4();
+	  glm::mat4 projection = glm::mat4(1.0f);
+	  //projection = glm::ortho(0.0f, m_width, 0.0f, m_height, 0.1f, 100.0f);
+	  if (per) {
+	  projection = glm::perspective(glm::radians(90.0f), m_width / m_height, 0.1f, 100.0f);
+		}// *math::perspectiveProjection(90, 1, 0.1, 1000);
 		  //projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
 		  //auto projection = perspectiveProjectionGl(45, 1, 0.1, 10);
-		  glm::mat4 view = glm::lookAt(glm::vec3(camX, 0, camZ), glm::vec3(0,0,0), glm::vec3(0,1,0));
+		  glm::mat4 view = glm::lookAt(
+			  glm::vec3(
+				  camX,
+				  0 ,
+				  camZ),
+			  glm::vec3(0,0,0),
+			  glm::vec3(0,1,0)
+		  );
 		  //view = math::lookAtMatrix({ camX, 0 ,camZ}, { 0,0,0 }, { 0,1,0 });
 		  //view = view * math::translateMatrix(0, 0, -10);
 
