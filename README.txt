@@ -1,3 +1,5 @@
+Assignment 1 Core
+
 To compile the CMake file:
 (From the directory with "CMakeList.txt")
 > mkdir build
