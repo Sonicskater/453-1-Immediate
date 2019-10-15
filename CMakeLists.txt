@@ -24,8 +24,7 @@ set(GLM_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLM example programs")
 set(GLM_BUILD_TESTS OFF CACHE INTERNAL "Build the GLM test programs")
 set(GLM_BUILD_DOCS OFF CACHE INTERNAL "Build the GLM documentation")
 set(GLM_INSTALL OFF CACHE INTERNAL "Generate installation target")
-
-include_directories(glm PRIVATE ${GLM_DIR})
+add_subdirectory(${GLM_DIR})
 #[[
         glad
 ]]
