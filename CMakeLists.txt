@@ -20,9 +20,9 @@ add_subdirectory(${GLFW_DIR})
         GLM
 ]]
 set(GLM_DIR external/glm/glm)
-set(GLM_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLFW example programs")
-set(GLM_BUILD_TESTS OFF CACHE INTERNAL "Build the GLFW test programs")
-set(GLM_BUILD_DOCS OFF CACHE INTERNAL "Build the GLFW documentation")
+set(GLM_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLM example programs")
+set(GLM_BUILD_TESTS OFF CACHE INTERNAL "Build the GLM test programs")
+set(GLM_BUILD_DOCS OFF CACHE INTERNAL "Build the GLM documentation")
 set(GLM_INSTALL OFF CACHE INTERNAL "Generate installation target")
 
 include_directories(glm PRIVATE ${GLM_DIR})
@@ -66,6 +66,8 @@ set(SOURCES
 	src/main2.cpp
     )
 
+
+
 #[[
         Executable
 ]]
@@ -82,11 +84,43 @@ target_compile_definitions(${PROJECT_NAME}
     PRIVATE -DGLFW_INCLUDE_NONE
     )
 
+# copied from learnopengl.com cmakelists for the purpose of putting shaders in external files.
+if(WIN32)
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/windows/${PROJECT_NAME}")
+elseif(UNIX AND NOT APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin/linux/${PROJECT_NAME}")
+elseif(APPLE)
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}")
+    set_target_properties(${PROJECT_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}")
+endif(WIN32)
+
 if(MSVC)
     target_compile_definitions(${PROJECT_NAME}
         PRIVATE -D_USE_MATH_DEFINES
         )
 endif()
+
+file(GLOB SHADERS
+                 "src/shaders/*.vs"
+                 # "src/${CHAPTER}/${DEMO}/*.frag"
+                 "src/shaders/*.fs"
+                 "src/shaders/*.gs"
+)
+foreach(SHADER ${SHADERS})
+    if(WIN32)
+        # configure_file(${SHADER} "test")
+        add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${SHADER} $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+    elseif(UNIX AND NOT APPLE)
+        file(COPY ${SHADER} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/linux/${PROJECT_NAME})
+    elseif(APPLE)
+        # create symbolic link for *.vs *.fs *.gs
+        get_filename_component(SHADERNAME ${SHADER} NAME)
+        makeLink(${SHADER} ${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}/${SHADERNAME} ${PROJECT_NAME})
+    endif(WIN32)
+endforeach(SHADER)
+
+#end copied cmake code.
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
     CXX_STANDARD 11
