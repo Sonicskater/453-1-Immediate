@@ -48,6 +48,11 @@ set(HEADERS
    include/mat4f.hpp
    include/common_matrices.hpp
    include/cube.hpp
+   include/obj_mesh.hpp
+   include/obj_mesh_file_io.hpp
+   include/object.hpp
+   include/vec2f.hpp
+   include/triangle2.hpp
    )
 
 #[[
@@ -63,6 +68,11 @@ set(SOURCES
     src/common_matrices.cpp
     src/cube.cpp
 	src/main2.cpp
+	src/obj_mesh.cpp
+	src/obj_mesh_file_io.cpp
+	src/object.cpp
+	src/vec2f.cpp
+	
     )
 
 #[[

@@ -11,9 +11,6 @@
 
 #include "GLFW/glfw3.h"
 #include <string>
-#include <vec3f.hpp>
-#include <mat4f.hpp>
-#include <common_matrices.hpp>
 #include <shader_tools.hpp>
 #include <glm\glm.hpp>
 #include <glm\ext\matrix_transform.hpp>
@@ -27,99 +24,25 @@
 
 //using namespace std;	//Uncomment to remove "std::" in front of functions
 
-float violet[] = { 1.0f, 0, 1.0f };
-float blue[] = { 0.0f, 0.0f, 1.0f };
-float green[] = { 0.0f, 1.0f, 0.0f };
-float red[] = { 1.0f, 0.0f, 0.0f };
-float orange[] = { 1.0f, 0.5f, 0.0f };
-float yellow[] = { 1.0f, 1.0f, 0.0f };
+glm::vec3 violet = { 1.0f, 0, 1.0f };
+glm::vec3 blue = { 0.0f, 0.0f, 1.0f };
+glm::vec3 green = { 0.0f, 1.0f, 0.0f };
+glm::vec3 red = { 1.0f, 0.0f, 0.0f };
+glm::vec3 orange = { 1.0f, 0.5f, 0.0f };
+glm::vec3 yellow = { 1.0f, 1.0f, 0.0f };
 
 glm::mat4 transform = glm::mat4(1.0f);
 glm::mat4 view;
 
-struct V3f	// declaration and initializatoin of the "V3f" structure
-{
-	float x, y, z;
-	V3f(float x1, float y1, float z1)
-	{
-		x = x1; y = y1; z = z1;
-	}
-	V3f()
-	{
-		x = 0; y = 0; z = 0;
-	}
-};
-
-V3f operator+(V3f a, V3f b)			// vector addition
-{
-	return V3f(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-V3f operator-(V3f a) 				// changing sign of a vector
-{
-	return V3f(-a.x, -a.y, -a.z);
-}
-
-V3f operator-(V3f a, V3f b)			// vectior subtraction
-{
-	return V3f(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-V3f operator*(float c, V3f a)		// scalar multiplied by a vector
-{
-	return V3f(c * a.x, c * a.y, c * a.z);
-}
-
-V3f operator*(V3f a, float c)		// vector multiplied by a scalar
-{
-	return V3f(c * a.x, c * a.y, c * a.z);
-}
-
-float operator*(V3f a, V3f b)		// dot product
-{
-	return (a.x * b.x + a.y * b.y + a.z * b.z);
-}
-
-V3f operator%(V3f a, V3f b)			// cross product
-{
-	V3f c;
-	c.x = a.y * b.z - a.z * b.y;
-	c.y = -a.x * b.z + a.z * b.x;
-	c.z = a.x * b.y - a.y * b.x;
-	return c;
-}
-
-float VecLength(V3f v)				// vector length
-{
-	return sqrt(v * v);
-}
-
-V3f VecNormalize(V3f v)				// vector normalization
-{
-	return (1.0 / VecLength(v) * v);
-}
-
-struct Vec3d {
-	//public members by default
-	Vec3d(GLdouble a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
-	Vec3d() = default;
-	Vec3d(GLdouble x, GLdouble y, GLdouble z) : x(x), y(y) , z(z) {}
-	Vec3d(float a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
-	GLdouble x = 0.f;	
-	GLdouble y = 0.f;
-	GLdouble z = 0.f;
-};
 
 struct Vertex {
 	Vertex() = default;
-	Vertex(Vec3d position, Vec3d color) : position(position), color(color) {}
+	Vertex(glm::dvec3 position, glm::vec3 color) : position(position), color(color) {}
 
-	Vec3d position;
-	Vec3d color;
+	glm::dvec3 position;
+	glm::dvec3 color;
 };
 
-Vec3d add(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y, a.z + b.z); }
-Vec3d operator+(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y,a.z + b.z); }
 
 struct Triangle {
 	//Private members by default
@@ -127,10 +50,11 @@ struct Triangle {
 
 	
 	public:
-	Vec3d a, b, c;
-	Vec3d m_color;
+	
+		glm::dvec3 a, b, c;
+		glm::dvec3 m_color;
 	Triangle() = default;
-	Triangle(Vec3d m_a, Vec3d m_b, Vec3d m_c, Vec3d color= yellow) {
+	Triangle(glm::dvec3 m_a, glm::dvec3 m_b, glm::dvec3 m_c, glm::dvec3 color = yellow) {
 		a = m_a;
 		b = m_b;
 		c = m_c;
@@ -141,7 +65,7 @@ struct Triangle {
 
 };
 
-void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], GLdouble bottomLeft[], GLfloat color[], std::vector<Triangle> &tris) {
+void drawFaceTris(glm::dvec3 topLeft, glm::dvec3 topRight, glm::dvec3 bottomRight, glm::dvec3 bottomLeft, glm::vec3 color, std::vector<Triangle> &tris) {
 
 	Triangle tl = Triangle(topRight,topLeft,bottomLeft,color);
 	Triangle br = Triangle(topRight, bottomLeft, bottomRight, color);
@@ -152,17 +76,17 @@ void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[
 
 void drawCubeTris(double x, double y, double z, double size, std::vector<bool> faces, std::vector<Triangle> &tris) {
 
-	GLdouble tfl[] = { x,y,z };
-	GLdouble tfr[] = { x + size,y,z };
+	glm::dvec3 tfl = { x,y,z };
+	glm::dvec3 tfr = { x + size,y,z };
 
-	GLdouble tbl[] = { x,y,z - size };
-	GLdouble tbr[] = { x + size,y,z - size };
+	glm::dvec3 tbl = { x,y,z - size };
+	glm::dvec3 tbr = { x + size,y,z - size };
 
-	GLdouble bfl[] = { x,y - size,z };
-	GLdouble bfr[] = { x + size,y - size,z };
+	glm::dvec3 bfl = { x,y - size,z };
+	glm::dvec3 bfr = { x + size,y - size,z };
 
-	GLdouble bbl[] = { x,y - size,z - size };
-	GLdouble bbr[] = { x + size,y - size,z - size };
+	glm::dvec3 bbl = { x,y - size,z - size };
+	glm::dvec3 bbr = { x + size,y - size,z - size };
 
 	GLdouble zero[] = { 0,0,0 };
 
@@ -430,11 +354,6 @@ void clear()
 }
 
 
-
-void prepMesh(std::vector<bool>& faces, unsigned int VBO);
-
-
-
 int main() {
 	window = nullptr;
 
@@ -520,6 +439,9 @@ int main() {
 
 	)fs";
 
+	std::cout << sizeof(Vertex) << "," << sizeof(glm::dvec3) << ","  << "\n";
+
+
 	//setup fragment shader
 	unsigned int fragmentShader;
 	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -545,7 +467,6 @@ int main() {
 	glGenVertexArrays(1, &VAO);
 
 	clear();
-	prepMesh(faces, VBO);
 
 	//bind vertex array and buffer
 	glBindVertexArray(VAO);
@@ -613,7 +534,7 @@ int main() {
 		float camY = sin(DegToRad(phi)) * sin(DegToRad(theta)) * scale;
 		float camZ = cos(DegToRad(phi)) * scale;
 
-		std::cout << phi << "," << theta << "\n";
+		//std::cout << phi << "," << theta << "\n";
 
 		//transform = glm::rotate(transform, glm::radians(-azimuth), glm::vec3(1, 0, 0));
 
@@ -668,21 +589,3 @@ int main() {
 	return EXIT_SUCCESS;
 }
 
-void prepMesh(std::vector<bool>& faces, unsigned int VBO)
-{
-	triangles = {};
-	drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
-	updateMesh = false;
-	std::cout << "made thing";
-	vecs.clear();
-	for (auto t : triangles) {
-
-	}
-	std::cout << vecs.size() << "\n";
-	// 2. copy our vertices array in a buffer for OpenGL to use
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vec3d), vecs.data(), GL_STATIC_DRAW);
-	// 3. then set our vertex attributes pointers
-	glVertexAttribPointer(0, 3, GL_DOUBLE, GL_FALSE, sizeof(Vec3d), (void*)0);
-	glEnableVertexAttribArray(0);
-}

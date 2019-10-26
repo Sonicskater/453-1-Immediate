@@ -17,90 +17,15 @@ float green[] = { 0.0f, 1.0f, 0.0f };
 float red[] = { 1.0f, 0.0f, 0.0f };
 float orange[] = { 1.0f, 0.5f, 0.0f };
 float yellow[] = { 1.0f, 1.0f, 0.0f };
-struct V3f	
-{
-	float x, y, z;
-	V3f(float x1, float y1, float z1)
-	{
-		x = x1; y = y1; z = z1;
-	}
-	V3f()
-	{
-		x = 0; y = 0; z = 0;
-	}
-};
-
-V3f operator+(V3f a, V3f b)			// vector addition
-{
-	return V3f(a.x + b.x, a.y + b.y, a.z + b.z);
-}
-
-V3f operator-(V3f a) 				// changing sign of a vector
-{
-	return V3f(-a.x, -a.y, -a.z);
-}
-
-V3f operator-(V3f a, V3f b)			// vectior subtraction
-{
-	return V3f(a.x - b.x, a.y - b.y, a.z - b.z);
-}
-
-V3f operator*(float c, V3f a)		// scalar multiplied by a vector
-{
-	return V3f(c * a.x, c * a.y, c * a.z);
-}
-
-V3f operator*(V3f a, float c)		// vector multiplied by a scalar
-{
-	return V3f(c * a.x, c * a.y, c * a.z);
-}
-
-float operator*(V3f a, V3f b)		// dot product
-{
-	return (a.x * b.x + a.y * b.y + a.z * b.z);
-}
-
-V3f operator%(V3f a, V3f b)			// cross product
-{
-	V3f c;
-	c.x = a.y * b.z - a.z * b.y;
-	c.y = -a.x * b.z + a.z * b.x;
-	c.z = a.x * b.y - a.y * b.x;
-	return c;
-}
-
-float VecLength(V3f v)				// vector length
-{
-	return sqrt(v * v);
-}
-
-V3f VecNormalize(V3f v)				// vector normalization
-{
-	return (1.0 / VecLength(v) * v);
-}
-
-struct Vec3d {
-	//public members by default
-	Vec3d(GLdouble a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
-	Vec3d() = default;
-	Vec3d(GLdouble x, GLdouble y, GLdouble z) : x(x), y(y) , z(z) {}
-	Vec3d(float a[3]) : x(a[0]), y(a[1]), z(a[2]) {}
-	GLdouble x = 0.f;	
-	GLdouble y = 0.f;
-	GLdouble z = 0.f;
-};
-
-Vec3d add(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y, a.z + b.z); }
-Vec3d operator+(Vec3d a, Vec3d b) { return Vec3d(a.x + b.x, a.y + b.y,a.z + b.z); }
 
 class Triangle {
 	//Private members by default
-	Vec3d m_verts[3];	
+	glm::dvec3 m_verts[3];	
 	
 public:
-	Vec3d m_color;
+	glm::dvec3 m_color;
 	Triangle() = default;
-	Triangle(Vec3d a, Vec3d b, Vec3d c, Vec3d color= yellow) {
+	Triangle(glm::dvec3 a, glm::dvec3 b, glm::dvec3 c, glm::dvec3 color= yellow) {
 		m_verts[0] = a;
 		m_verts[1] = b;
 		m_verts[2] = c;
@@ -108,18 +33,18 @@ public:
 	}
 
 	//functions to get/read value
-	Vec3d a() const { return m_verts[0]; }
-	Vec3d b() const { return m_verts[1]; }
-	Vec3d c() const { return m_verts[2]; }
+	glm::dvec3 a() const { return m_verts[0]; }
+	glm::dvec3 b() const { return m_verts[1]; }
+	glm::dvec3 c() const { return m_verts[2]; }
 
-	Vec3d operator[](int index) const { return m_verts[index]; }
+	glm::dvec3 operator[](int index) const { return m_verts[index]; }
 
 	//functions to set value
-	Vec3d &a() { return m_verts[0]; }
-	Vec3d &b() { return m_verts[1]; }
-	Vec3d &c() { return m_verts[2]; }
+	glm::dvec3 &a() { return m_verts[0]; }
+	glm::dvec3 &b() { return m_verts[1]; }
+	glm::dvec3 &c() { return m_verts[2]; }
 
-	Vec3d &operator[](int index) { return m_verts[index]; }	
+	glm::dvec3 &operator[](int index) { return m_verts[index]; }
 };
 
 void drawTri(Triangle t) {
@@ -466,3 +391,4 @@ int main() {
 
   return EXIT_SUCCESS;
 }
+
