@@ -18,7 +18,8 @@
 #include <glm\glm.hpp>
 #include <glm\ext\matrix_transform.hpp>
 #include <glm\gtc\type_ptr.hpp>
-
+#include <glm\gtc\quaternion.hpp>
+#include <glm\gtx\quaternion.hpp>
 
 
 #define RAD 57.29577951
@@ -32,6 +33,10 @@ float green[] = { 0.0f, 1.0f, 0.0f };
 float red[] = { 1.0f, 0.0f, 0.0f };
 float orange[] = { 1.0f, 0.5f, 0.0f };
 float yellow[] = { 1.0f, 1.0f, 0.0f };
+
+glm::mat4 transform = glm::mat4(1.0f);
+glm::mat4 view;
+
 struct V3f	// declaration and initializatoin of the "V3f" structure
 {
 	float x, y, z;
@@ -121,7 +126,7 @@ struct Triangle {
 	//Vec3d m_verts[3];
 
 	
-public:
+	public:
 	Vec3d a, b, c;
 	Vec3d m_color;
 	Triangle() = default;
@@ -138,7 +143,6 @@ public:
 
 void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[], GLdouble bottomLeft[], GLfloat color[], std::vector<Triangle> &tris) {
 
-
 	Triangle tl = Triangle(topRight,topLeft,bottomLeft,color);
 	Triangle br = Triangle(topRight, bottomLeft, bottomRight, color);
 	tris.push_back(tl);
@@ -147,6 +151,7 @@ void drawFaceTris(GLdouble topLeft[], GLdouble topRight[], GLdouble bottomRight[
 }
 
 void drawCubeTris(double x, double y, double z, double size, std::vector<bool> faces, std::vector<Triangle> &tris) {
+
 	GLdouble tfl[] = { x,y,z };
 	GLdouble tfr[] = { x + size,y,z };
 
@@ -195,7 +200,7 @@ void drawSpongeTris(double x, double y, double z, double size, int r, std::vecto
 		double layer_depth = z;
 		//front cubes
 
-			// top layer
+		// top layer
 		double up = y;
 		drawSpongeTris(x, up, layer_depth, s, r, faces, tris);
 		drawSpongeTris(x + s, up, layer_depth, s, r, faces, tris);
@@ -250,8 +255,8 @@ void drawSpongeTris(double x, double y, double z, double size, int r, std::vecto
 
 int recursionLevel = 0;
 bool updateMesh = true;
-float spin = 1.0f;
-float spin2 = 1.0f;
+float phi = 1.0f;
+float theta = 1.0f;
 
 float scale = 1.0f;
 
@@ -279,6 +284,8 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 }
 double xPrev = 0;
 double yPrev = 0;
+float m_width = 800;
+float m_height = 800;
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
 	if (xPrev == 0 || yPrev == 0) {
@@ -290,23 +297,14 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 		return;
 	}
 	else {
-		spin -= 0.1 * (xpos - xPrev);
-		//double s = fmod(spin, 360);
-		spin2 -= 0.1 * (ypos - yPrev);
-		if (spin2 < -89)
-		{
-			spin2 = -89;
-		}
-		else if (spin2 > 89) {
-			spin2 = 89;
-		}
-		
-		xPrev = xpos;
-		yPrev = ypos;
+		glm::mat4 cubeInv = glm::inverse(transform);
+		glm::vec4 rX = cubeInv * view * glm::vec4(0.f, -1.f, 0.f, 1.f);
+		glm::vec4 rY = cubeInv * view * glm::vec4(-1.f, 0.f, 0.f, 1.f);
+		transform = glm::rotate(transform, (m_width / 2 - (float)xpos) * 0.001f , glm::vec3(rX.x, rX.y, rX.z));
+		transform = glm::rotate(transform, (m_height / 2 - (float)ypos)* 0.001f, glm::vec3(rY.x, rY.y, rY.z));
 	}
 }
-float m_width = 800;
-float m_height = 800;
+
 bool updateWindow = true;
 void clear();
 void draw(std::vector<Triangle> tris);
@@ -325,8 +323,9 @@ GLfloat* symmetricFrustumProjectionGl(float r, float t, float n, float f) {
 	};
 	return symmetricFrustum;
 }
-GLfloat* perspectiveProjectionGl(float fovDegrees, float aspectRatio, float zNear,
-	float zFar) {
+
+GLfloat* perspectiveProjectionGl(float fovDegrees, float aspectRatio, float zNear, float zFar) 
+{
 	float top = std::tan(fovDegrees * (M_PI / 180.f) * (1.f / 2.f)) * zNear;
 	float right = top * aspectRatio;
 
@@ -369,6 +368,7 @@ void setupWindow(GLFWwindow *window) {
 	glfwSetScrollCallback(window, scroll_callback);
 }
 GLFWwindow* window;
+
 void printGlVersion() {
 	int glfwMajor, glfwMinor, glfwRevision;
 	glfwGetVersion(&glfwMajor, &glfwMinor, &glfwRevision);
@@ -404,10 +404,10 @@ void applyTransform() {
 	//glPushMatrix();
 	glLoadIdentity();
 	if (per) {
-		glTranslatef(0, 0, -2);
+	glTranslatef(0, 0, -2);
 	}
-	glRotatef(spin, 0, 1.0, 0);
-	glRotatef(spin2, 1, 0, 0);
+	glRotatef(phi, 0, 1.0, 0);
+	glRotatef(theta, 1, 0, 0);
 	glScaled(scale, scale, scale);
 	glMatrixMode(GL_PROJECTION);
 	auto d = perspectiveProjectionGl(90, m_width / m_height, 0.1, 15);
@@ -416,14 +416,13 @@ void applyTransform() {
 	//glPushMatrix();
 	glLoadIdentity();
 	if (per) {
-		glPerspective(90, m_width / m_height, 0.1, 5);
+	glPerspective(90, m_width / m_height, 0.1, 5);
 	}
 	//draw(triangles);
 	glMatrixMode(GL_MODELVIEW);
 	
 	
 }
-
 void clear()
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -436,256 +435,237 @@ void prepMesh(std::vector<bool>& faces, unsigned int VBO);
 
 
 
-
 int main() {
-   window = nullptr;
+	window = nullptr;
 
-  // Close if OpenGL is not initialized
-  if (!glfwInit()) {
-    exit(EXIT_FAILURE);
-  }
-  // Currently installed version of OpenGL
-  printGlVersion();
+	// Close if OpenGL is not initialized
+	if (!glfwInit()) {
+		exit(EXIT_FAILURE);
+	}
+	// Currently installed version of OpenGL
+	printGlVersion();
 
-  //Assign OpenGL version for program
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	//Assign OpenGL version for program
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-  //Create window
-  window = glfwCreateWindow(m_height, m_width, "Tut03", NULL, NULL);
-  if (!window) {
-    glfwTerminate();
-    exit(EXIT_FAILURE);
-  }
+	//Create window
+	window = glfwCreateWindow(m_height, m_width, "Tut03", NULL, NULL);
+
+	if (!window) {
+		glfwTerminate();
+		exit(EXIT_FAILURE);
+	}
   
-  setupWindow(window);
+	setupWindow(window);
 
-  glSetup();
+	glSetup();
 
-  std::vector<bool> faces = { true, true, true, true, true, true };
+	std::vector<bool> faces = { true, true, true, true, true, true };
 
-  //setup vertex buffer
-  unsigned int VBO;
-  glGenBuffers(1, &VBO);
-  glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	//setup vertex buffer
+	unsigned int VBO;
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
   
-  //setup vertex shader
-  const char* vertex_shader = R"vs(
+	//setup vertex shader
+	const char* vertex_shader = R"vs(
+	#version 330 core
+	layout (location = 0) in vec3 position;
+	layout (location = 1) in vec3 color;
 
-			#version 330 core
-      layout (location = 0) in vec3 position;
-      layout (location = 1) in vec3 color;
+	struct Data
+	{
+		vec3 color;
+	};
 
-      struct Data
-      {
-        vec3 color;
-      };
+	out Data data;
 
-      out Data data;
+	uniform mat4 transform;
+	uniform mat4 projection;
+	uniform mat4 view;
 
-		uniform mat4 transform;
-		uniform mat4 projection;
-		uniform mat4 view;
+	void main()
+	{
+		gl_Position =  projection  * view * transform * vec4(position, 1.);
+		data.color = color;
+	}
 
-			void main()
-			{
-        gl_Position =  projection  * view * transform * vec4(position, 1.);
+	)vs";
 
-        data.color = color;
+	unsigned int vertexShader;
+	vertexShader = glCreateShader(GL_VERTEX_SHADER);
+	glShaderSource(vertexShader, 1, &vertex_shader, NULL);
+	glCompileShader(vertexShader);
+
+	openGL::checkShaderCompileStatus(vertexShader);
+
+	const char* fragment_shader = R"fs(
+
+	#version 330 core
+
+	struct Data
+	{
+		vec3 color;
+	};
+
+	in Data data;
+
+	out vec4 fragmentColor;
+	void main()
+	{
+		fragmentColor = vec4(data.color, 1.f);
+	}
+
+	)fs";
+
+	//setup fragment shader
+	unsigned int fragmentShader;
+	fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+	glShaderSource(fragmentShader, 1, &fragment_shader, NULL);
+	glCompileShader(fragmentShader);
+
+	//setup and compile shader pipeline
+	GLint shaderProgram;
+	shaderProgram = glCreateProgram();
+	glAttachShader(shaderProgram, vertexShader);
+	glAttachShader(shaderProgram, fragmentShader);
+	glLinkProgram(shaderProgram);
+
+	//set current shader program
+	glUseProgram(shaderProgram);
+
+	//cleanup now uselss shader code objects.
+	glDeleteShader(vertexShader);
+	glDeleteShader(fragmentShader);
+
+	// bind Vertex Array Object
+	unsigned int VAO;
+	glGenVertexArrays(1, &VAO);
+
+	clear();
+	prepMesh(faces, VBO);
+
+	//bind vertex array and buffer
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	// configure vertex arrays
+	glEnableVertexAttribArray(0);          // match layout # in shader
+	glVertexAttribPointer(                 //
+		0,                                 // attribute layout # (in shader)
+		3,                                 // number of coordinates per vertex
+		GL_DOUBLE,                          // type
+		GL_FALSE,                          // normalized?
+		sizeof(Vertex),                    // stride
+		(void*)offsetof(Vertex, position) // array buffer offset
+	);
+
+	glEnableVertexAttribArray(1);         // match layout # in shader
+	glVertexAttribPointer(                //
+		1,                                // attribute layout # (in shader)
+		3,                                // number of coordinates per vertex
+		GL_DOUBLE,                         // type
+		GL_FALSE,                         // normalized?
+		sizeof(Vertex),                   // stride
+		(void*)(offsetof(Vertex, color)) // array buffer offset
+	);
+
+	bool oldPer = !per;
+	bool draw = true;
+
+	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::mat4 projection = glm::mat4(1.0f);
+
+
+	while (!glfwWindowShouldClose(window)) {
+
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+
+		if (updateMesh || vecs.size() == 0) {
+
+			//generate mesh
+			triangles = {};
+			drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
+			updateMesh = false;
+			std::cout << "made thing";
+			vecs.clear();
+
+			for (auto t : triangles) {
+				vecs.push_back(Vertex(t.a, t.m_color));
+				vecs.push_back(Vertex(t.b, t.m_color));
+				vecs.push_back(Vertex(t.c, t.m_color));
 			}
 
-			)vs";
+			std::cout << vecs.size() << "\n";
 
-  unsigned int vertexShader;
-  vertexShader = glCreateShader(GL_VERTEX_SHADER);
-  glShaderSource(vertexShader, 1, &vertex_shader, NULL);
-  glCompileShader(vertexShader);
+			//Load vertices to gpu
+			glBindVertexArray(0);
+			glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
+		}
 
-  openGL::checkShaderCompileStatus(vertexShader);
+		clear();
+		glPolygonMode(GL_FRONT, GL_POLYGON);
 
-  const char* fragment_shader = R"fs(
+		float radius = 10.0f;
+		float camX = sin(DegToRad(phi)) * cos(DegToRad(theta)) * scale;
+		float camY = sin(DegToRad(phi)) * sin(DegToRad(theta)) * scale;
+		float camZ = cos(DegToRad(phi)) * scale;
 
-			#version 330 core
+		std::cout << phi << "," << theta << "\n";
 
-      struct Data
-      {
-        vec3 color;
-      };
-
-      in Data data;
-
-      out vec4 fragmentColor;
-			void main()
-			{
-        fragmentColor = vec4(data.color, 1.f);
-			}
-
-			)fs";
-
-  //setup fragment shader
-  unsigned int fragmentShader;
-  fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-  glShaderSource(fragmentShader, 1, &fragment_shader, NULL);
-  glCompileShader(fragmentShader);
-
-  //setup and compile shader pipeline
-  GLint shaderProgram;
-  shaderProgram = glCreateProgram();
-  glAttachShader(shaderProgram, vertexShader);
-  glAttachShader(shaderProgram, fragmentShader);
-  glLinkProgram(shaderProgram);
-
-  //set current shader program
-  glUseProgram(shaderProgram);
-
-  //cleanup now uselss shader code objects.
-  glDeleteShader(vertexShader);
-  glDeleteShader(fragmentShader);
+		//transform = glm::rotate(transform, glm::radians(-azimuth), glm::vec3(1, 0, 0));
 
 
-  // ..:: Initialization code (done once (unless your object frequently changes)) :: ..
-  
+		if (per) {
+			projection = glm::perspective(glm::radians(90.0f), m_width / m_height, 0.1f, 100.0f);
+		}
+		else {
+			projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.0f);
+		}
 
-  float vertices[] = {
--0.5f, -0.5f, 0.0f,
- 0.5f, -0.5f, 0.0f,
- 0.0f,  0.5f, 0.0f
-  };
+		if (per != oldPer) {
+			GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
+			glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+			oldPer = per;
+		}
 
-  // 1. bind Vertex Array Object
-  unsigned int VAO;
-  glGenVertexArrays(1, &VAO);
-
-  // Rendering loop
-
-  clear();
-  prepMesh(faces, VBO);
-
-  glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
-  while (!glfwWindowShouldClose(window)) {
-
-
-	  glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	  if (updateMesh || vecs.size() == 0) {
-		  triangles = {};
-		  drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
-		  updateMesh = false;
-		  std::cout << "made thing";
-		  vecs.clear();
-		  for (auto t : triangles) {
-			  vecs.push_back(Vertex(t.a, t.m_color));
-			  vecs.push_back(Vertex(t.b, t.m_color));
-			  vecs.push_back(Vertex(t.c, t.m_color));
-		  }
-		  std::cout << vecs.size() << "\n";
-	  }
-	  //glFrontFace(GL_FRONT_AND_BACK);
-	  glBindVertexArray(VAO);
-	  glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	  // 3. then set our vertex attributes pointers
-	  glEnableVertexAttribArray(0);          // match layout # in shader
-	  glVertexAttribPointer(                 //
-		  0,                                 // attribute layout # (in shader)
-		  3,                                 // number of coordinates per vertex
-		  GL_DOUBLE,                          // type
-		  GL_FALSE,                          // normalized?
-		  sizeof(Vertex),                    // stride
-		  (void*)offsetof(Vertex, position) // array buffer offset
-	  );
-
-	  glEnableVertexAttribArray(1);         // match layout # in shader
-	  glVertexAttribPointer(                //
-		  1,                                // attribute layout # (in shader)
-		  3,                                // number of coordinates per vertex
-		  GL_DOUBLE,                         // type
-		  GL_FALSE,                         // normalized?
-		  sizeof(Vertex),                   // stride
-		  (void*)(offsetof(Vertex, color)) // array buffer offset
-	  );
+		 view = glm::lookAt(
+			glm::vec3(
+				0,
+				0,
+				3),
+			glm::vec3(0, 0, 0),
+			glm::vec3(0, 1, 0)
+		);
 
 
-	  glBindVertexArray(0);
-
-	  glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
-	  clear();
-	  //draw
-
-	  //glBindVertexArray(0);
-
-	  //std::cout << "yeet";
-
-	  if (updateWindow) {
-
-		  updateWindow = false;
-	  }
-	  glPolygonMode(GL_FRONT_AND_BACK, GL_POLYGON);
-
-	  //draw(triangles);
 
 
-	  float radius = 10.0f;
-	  float camX = sin(spin * 0.001) * scale;
-	  float camZ = cos(spin * 0.001) * scale;
-
-	  //applyTransform();
-	  //math::Mat4f transformold = math::identity();
-	  glm::mat4 transform = glm::mat4(1.0f);
-	  //transform = transform * math::translateMatrix(0,0,-1);
-
-	  transform = glm::rotate(transform, glm::radians(spin2), glm::vec3(1, 0, 0));
-	  transform = glm::rotate(transform, glm::radians(spin), glm::vec3(0, 1, 0));
-	  //transform = transform * math::rotateAboutXMatrix(spin2);
-	  //transform = transform * math::uniformScaleMatrix(scale);
-	  //transform = glm::scale(transform, glm::vec3(scale, scale, scale));
-	  glm::mat4 test = glm::mat4();
-	  glm::mat4 projection = glm::mat4(1.0f);
-	  //projection = glm::ortho(0.0f, m_width, 0.0f, m_height, 0.1f, 100.0f);
-	  if (per) {
-	  projection = glm::perspective(glm::radians(90.0f), m_width / m_height, 0.1f, 100.0f);
-		}// *math::perspectiveProjection(90, 1, 0.1, 1000);
-		  //projection = projection * math::orthographicProjection(0, m_width, m_height, 0, 0, 1000);
-		  //auto projection = perspectiveProjectionGl(45, 1, 0.1, 10);
-		  glm::mat4 view = glm::lookAt(
-			  glm::vec3(
-				  camX,
-				  0 ,
-				  camZ),
-			  glm::vec3(0,0,0),
-			  glm::vec3(0,1,0)
-		  );
-		  //view = math::lookAtMatrix({ camX, 0 ,camZ}, { 0,0,0 }, { 0,1,0 });
-		  //view = view * math::translateMatrix(0, 0, -10);
+		GLint transformLoc = glGetUniformLocation(shaderProgram, "transform");
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
 
 
-		  glUseProgram(shaderProgram);
 
-		  glMatrixMode(GL_MODELVIEW);
-		  GLint transformLoc = glGetUniformLocation(shaderProgram, "transform");
-		  glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+		glUseProgram(shaderProgram);
 
+		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
+		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
 
-		  GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-		  glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
+		if (draw) {
+			glBindVertexArray(VAO);
+			glDrawArrays(GL_TRIANGLES, 0, vecs.size());
+		}
 
-		  glMatrixMode(GL_PROJECTION);
+		glfwSwapBuffers(window);
+		glfwPollEvents(); // will process event queue and carry on  
+	}
 
-		  GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-		  glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
+	glfwDestroyWindow(window);
+	glfwTerminate();
 
-
-		  glBindVertexArray(VAO);
-		  glDrawArrays(GL_TRIANGLES, 0, vecs.size());
-		  glfwSwapBuffers(window);
-		  glfwPollEvents(); // will process event queue and carry on
-	  
-  }
-
-  glfwDestroyWindow(window);
-  glfwTerminate();
-
-  return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }
 
 void prepMesh(std::vector<bool>& faces, unsigned int VBO)
