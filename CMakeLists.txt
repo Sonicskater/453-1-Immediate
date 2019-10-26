@@ -19,7 +19,7 @@ add_subdirectory(${GLFW_DIR})
 #[[
         GLM
 ]]
-set(GLM_DIR external/glm/glm)
+set(GLM_DIR external/glm)
 set(GLM_BUILD_EXAMPLES OFF CACHE INTERNAL "Build the GLM example programs")
 set(GLM_BUILD_TESTS OFF CACHE INTERNAL "Build the GLM test programs")
 set(GLM_BUILD_DOCS OFF CACHE INTERNAL "Build the GLM documentation")
