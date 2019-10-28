@@ -18,6 +18,7 @@
 #include "triangle.hpp"
 #include "vec2f.hpp"
 #include "vec3f.hpp"
+#include <glm\fwd.hpp>
 
 // Simple OBJ mesh file
 // assumes triangles
@@ -43,8 +44,8 @@ struct Indices {
 using IndicesTriangle = Triangle_<Indices>;
 using IndicesTriangles = std::vector<IndicesTriangle>;
 using Vertices = std::vector<math::Vec3f>;
-using Normals = std::vector<math::Vec3f>;
-using TextureCoords = std::vector<math::Vec2f>;
+using Normals = std::vector<math::Vec3f >;
+using TextureCoords = std::vector<math::Vec2f >;
 
 struct OBJMesh {
   IndicesTriangles triangles;

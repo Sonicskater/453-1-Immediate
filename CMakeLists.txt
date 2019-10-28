@@ -53,6 +53,14 @@ set(HEADERS
    include/object.hpp
    include/vec2f.hpp
    include/triangle2.hpp
+
+   include/vbo_tools.hpp
+   include/buffer_object.hpp
+   include/vertex_array_object.hpp
+
+   include/shader.hpp
+   include/shader_file_io.hpp
+   include/program.hpp
    )
 
 #[[
@@ -72,6 +80,30 @@ set(SOURCES
 	src/obj_mesh_file_io.cpp
 	src/object.cpp
 	src/vec2f.cpp
+
+	src/buffer_object.cpp
+	src/vertex_array_object.cpp
+	src/vbo_tools.cpp
+
+	src/imconfig.h
+	src/imgui.cpp
+	src/imgui.h
+	src/imgui_demo.cpp
+	src/imgui_draw.cpp
+	src/imgui_internal.h
+	src/imgui_widgets.cpp
+	src/imstb_rectpack.h
+	src/imstb_textedit.h
+	src/imstb_truetype.h
+
+	src/imgui_impl_glfw.cpp
+	src/imgui_impl_glfw.h
+	src/imgui_impl_opengl3.cpp
+	src/imgui_impl_opengl3.h
+
+	src/shader.cpp
+    src/shader_file_io.cpp
+	src/program.cpp
 	
     )
 
@@ -113,7 +145,28 @@ file(GLOB SHADERS
                  # "src/${CHAPTER}/${DEMO}/*.frag"
                  "src/shaders/*.fs"
                  "src/shaders/*.gs"
+				 "src/shaders/*.glsl"
 )
+file(GLOB MODELS
+
+	"models/*.obj"
+	"models/*.jpg"
+
+)
+
+foreach(MODEL ${MODELS})
+	if(WIN32)
+        # configure_file(${SHADER} "test")
+        add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD COMMAND ${CMAKE_COMMAND} -E copy ${MODEL} $<TARGET_FILE_DIR:${PROJECT_NAME}>)
+    elseif(UNIX AND NOT APPLE)
+        file(COPY ${MODEL} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/bin/linux/${PROJECT_NAME})
+    elseif(APPLE)
+        # create symbolic link for *.vs *.fs *.gs
+        get_filename_component(SHADERNAME ${SHADER} NAME)
+        makeLink(${MODEL} ${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}/${SHADERNAME} ${PROJECT_NAME})
+    endif(WIN32)
+endforeach(MODEL)
+
 foreach(SHADER ${SHADERS})
     if(WIN32)
         # configure_file(${SHADER} "test")
@@ -126,6 +179,9 @@ foreach(SHADER ${SHADERS})
         makeLink(${SHADER} ${CMAKE_CURRENT_BINARY_DIR}/bin/apple/${PROJECT_NAME}/${SHADERNAME} ${PROJECT_NAME})
     endif(WIN32)
 endforeach(SHADER)
+
+
+
 
 #end copied cmake code.
 

@@ -1,3 +1,15 @@
+/**
+ * @author	Andrew Robert Owens, Philmo Gu
+ * @date 	2019-10-15.
+ * @details Organization: Biological Modeling and Visualization research group
+ * University of Calgary, Calgary, AB, Canada
+ *
+ * Contact:	arowens [at] ucalgary.ca
+ * @copyright Copyright (c) 2019 ___ALGORITHMIC_BOTANY___. All rights reserved.
+ *
+ * @brief
+ */
+
 #pragma once
 
 #include <iosfwd>
@@ -25,6 +37,9 @@ struct Vec3f {
 
   Vec3f &normalize();
 
+  float const *data() const;
+  float *data();
+
   void zero();
 };
 
@@ -45,6 +60,10 @@ Vec3f cross(Vec3f const &a, Vec3f const &b);
 float norm(Vec3f const &v);
 float normSquared(Vec3f const &v);
 Vec3f normalized(Vec3f v);
+
+Vec3f rotateAroundAxis(Vec3f v, Vec3f axis, float angleDegrees);
+
+Vec3f rotateAroundNormalizedAxis(Vec3f v, Vec3f axis, float angleDegrees);
 
 // Linear interpolation from a to b by t
 Vec3f lerp(Vec3f const &a, Vec3f const &b, float t);

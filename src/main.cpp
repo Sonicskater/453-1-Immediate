@@ -17,6 +17,18 @@
 #include <glm\gtc\type_ptr.hpp>
 #include <glm\gtc\quaternion.hpp>
 #include <glm\gtx\quaternion.hpp>
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include "vec3f.hpp"
+#include "vec2f.hpp"
+
+#include "buffer_object.hpp"
+#include "vertex_array_object.hpp"
+#include "vbo_tools.hpp"
+#include <program.hpp>
+#include <shader_file_io.hpp>
+
 
 
 #define RAD 57.29577951
@@ -34,6 +46,7 @@ glm::vec3 yellow = { 1.0f, 1.0f, 0.0f };
 glm::mat4 transform = glm::mat4(1.0f);
 glm::mat4 view;
 
+ImGuiIO* io;
 
 struct Vertex {
 	Vertex() = default;
@@ -212,6 +225,10 @@ float m_width = 800;
 float m_height = 800;
 void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 {
+	//Bail and ignore input if
+	if (io->WantCaptureMouse) {
+		return;
+	}
 	if (xPrev == 0 || yPrev == 0) {
 		xPrev = xpos;
 		yPrev = ypos;
@@ -224,13 +241,15 @@ void cursor_position_callback(GLFWwindow* window, double xpos, double ypos)
 		glm::mat4 cubeInv = glm::inverse(transform);
 		glm::vec4 rX = cubeInv * view * glm::vec4(0.f, -1.f, 0.f, 1.f);
 		glm::vec4 rY = cubeInv * view * glm::vec4(-1.f, 0.f, 0.f, 1.f);
-		transform = glm::rotate(transform, (m_width / 2 - (float)xpos) * 0.001f , glm::vec3(rX.x, rX.y, rX.z));
-		transform = glm::rotate(transform, (m_height / 2 - (float)ypos)* 0.001f, glm::vec3(rY.x, rY.y, rY.z));
+		//transform = glm::rotate(transform, (m_width / 2 - (float)xpos) * 0.001f , glm::vec3(rX.x, rX.y, rX.z));
+		//transform = glm::rotate(transform, (m_height / 2 - (float)ypos)* 0.001f, glm::vec3(rY.x, rY.y, rY.z));
 	}
 }
 
 bool updateWindow = true;
 void clear();
+void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, opengl::VertexArrayObject& vao, opengl::BufferObject& indexBuffer, opengl::BufferObject& vertexBuffer);
+int main();
 void draw(std::vector<Triangle> tris);
 
 GLfloat* symmetricFrustumProjectionGl(float r, float t, float n, float f) {
@@ -320,39 +339,131 @@ void glPerspective(GLdouble fovY, GLdouble aspect, GLdouble zNear, GLdouble zFar
 	glFrustum(-fW, fW, -fH, fH, zNear, zFar);
 }
 
-void applyTransform() {
-
-
-	glMatrixMode(GL_MODELVIEW);
-	//glPopMatrix();
-	//glPushMatrix();
-	glLoadIdentity();
-	if (per) {
-	glTranslatef(0, 0, -2);
-	}
-	glRotatef(phi, 0, 1.0, 0);
-	glRotatef(theta, 1, 0, 0);
-	glScaled(scale, scale, scale);
-	glMatrixMode(GL_PROJECTION);
-	auto d = perspectiveProjectionGl(90, m_width / m_height, 0.1, 15);
-	//const GLfloat* g = d;
-	//glPopMatrix();
-	//glPushMatrix();
-	glLoadIdentity();
-	if (per) {
-	glPerspective(90, m_width / m_height, 0.1, 5);
-	}
-	//draw(triangles);
-	glMatrixMode(GL_MODELVIEW);
-	
-	
-}
 void clear()
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+// user defined alias
+opengl::Program createShaderProgram(std::string const& vertexShaderFile,
+	std::string const& fragmentShaderFile) {
+	using namespace opengl;
+	auto vertexShaderSource = loadShaderStringFromFile(vertexShaderFile);
+	auto fragmentShaderSource = loadShaderStringFromFile(fragmentShaderFile);
+
+	std::cout << "[Log] compiling program " << vertexShaderFile << ' '
+		<< fragmentShaderFile << '\n';
+	return opengl::makeProgram(vertexShaderSource, fragmentShaderSource);
+}
+
+opengl::Program createShaderProgram(std::string const& vertexShaderFile,
+	std::string const& geometryShaderFile,
+	std::string const& fragmentShaderFile) {
+	using namespace opengl;
+	auto vertexShaderSource = loadShaderStringFromFile(vertexShaderFile);
+	auto geometryShaderSource = loadShaderStringFromFile(geometryShaderFile);
+	auto fragmentShaderSource = loadShaderStringFromFile(fragmentShaderFile);
+
+	std::cout << "[Log] compiling program " << vertexShaderFile << ' '
+		<< geometryShaderFile << ' ' << fragmentShaderFile << '\n';
+	return opengl::makeProgram(vertexShaderSource, geometryShaderSource,
+		fragmentShaderSource);
+}
+
+bool wf = true;
+bool pers = true;
+
+void toggleWF() {
+	wf = !wf;
+	std::cout << "toggled wf" << "\n";
+}
+
+void togglePer() {
+	pers = !pers;
+	std::cout << "toggled per" << "\n";
+}
+float scaleFactor;
+
+void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, opengl::VertexArrayObject& vao, opengl::BufferObject& indexBuffer, opengl::BufferObject& vertexBuffer)
+{
+	std::string filePath = "";
+
+	if (updateMesh) {
+		switch (mesh)
+		{
+		case 1:
+			filePath = "./ico_sphere_w_normals.obj";
+			scaleFactor = 1.f;
+			break;
+		case 2:
+			filePath = "./spot_triangulated.obj";
+			scaleFactor = 1.f;
+			break;
+		case 3:
+			filePath = "./teapot_triangulated.obj";
+			scaleFactor = 0.5f;
+			break;
+		case 4:
+			filePath = "./Nefertiti_Low.obj";
+			scaleFactor = 0.2f;
+			break;
+		case 5:
+			filePath = "./Nefertiti_High.obj";
+			scaleFactor = 0.2f;
+			break;
+
+		}
+	}
+
+	if (!geometry::loadOBJMeshFromFile(filePath, meshData)) {
+		std::cerr << "[Error] Cannot load .obj file located at: " << filePath;
+	}
+
+	std::cout << meshData.triangles.size() << "," << meshData.vertices.size() << "," << meshData.normals.size() << "\n";
+
+	//Calculate vertex normals if they are not included in .obj file
+	if (meshData.normals.size() == 0) {
+
+		std::cout << "Missing Normals\n";
+
+		geometry::Normals normals = geometry::calculateVertexNormals(meshData.triangles, meshData.vertices);
+
+		std::cout << normals.size() << "\n";
+
+		//meshData.normals = normals;
+		opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData, normals);//, normals);
+
+		std::cout << meshData.normals.size() << "\n";
+
+		totalIndices =
+			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+
+		std::cout << totalIndices;
+	}
+	//Pass in vertex normals if they are already included in .obj file
+	else {
+		std::cout << "Normals Present \n";
+		opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData);
+
+		totalIndices =
+			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+		std::cout << totalIndices;
+	}
+}
+
+float yaw;
+float pitch;
+float roll;
+
+float x;
+float y;
+float z;
+
+
+
+int oldMesh;
+int shadingMode = 1;
 
 int main() {
 	window = nullptr;
@@ -392,14 +503,13 @@ int main() {
 	const char* vertex_shader = R"vs(
 	#version 330 core
 	layout (location = 0) in vec3 position;
-	layout (location = 1) in vec3 color;
+	layout (location = 1) in vec3 normal;
 
-	struct Data
+	out Data
 	{
-		vec3 color;
-	};
-
-	out Data data;
+		vec3 position;
+		vec3 normal;
+	} data;
 
 	uniform mat4 transform;
 	uniform mat4 projection;
@@ -407,8 +517,11 @@ int main() {
 
 	void main()
 	{
-		gl_Position =  projection  * view * transform * vec4(position, 1.);
-		data.color = color;
+		//move vertices in model space to world space
+		data.position = vec3(transform * vec4(position, 1.0));
+		data.normal = normalize(mat3(transform) * normal);
+	
+		gl_Position = projection * view * vec4(data.position, 1.0);
 	}
 
 	)vs";
@@ -423,23 +536,22 @@ int main() {
 	const char* fragment_shader = R"fs(
 
 	#version 330 core
+	out vec4 fragColor;
 
-	struct Data
-	{
-		vec3 color;
-	};
+	in Data {
+		vec3 position;
+		vec3 normal;
+	} data;
 
-	in Data data;
-
-	out vec4 fragmentColor;
 	void main()
 	{
-		fragmentColor = vec4(data.color, 1.f);
+		fragColor = vec4(data.normal, 1.0);
 	}
 
 	)fs";
 
 	std::cout << sizeof(Vertex) << "," << sizeof(glm::dvec3) << ","  << "\n";
+
 
 
 	//setup fragment shader
@@ -496,92 +608,175 @@ int main() {
 	bool oldPer = !per;
 	bool draw = true;
 
-	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 1.0f);
+	glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
 	glm::mat4 projection = glm::mat4(1.0f);
 
+	char* buf = new char[10];
 
+	float f = 0;
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	io = &ImGui::GetIO(); (void)io;
+
+	ImGui::StyleColorsDark();
+
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+
+	double lastTime = glfwGetTime();
+	int nbFrames = 0;
+
+	char* frameRate = "0";
+	int mesh = 1;
+
+	auto vao = opengl::makeVertexArrayObject();
+	auto indexBuffer = opengl::makeBufferObject();
+	auto vertexBuffer = opengl::makeBufferObject();
+
+	GLuint totalIndices = 0;
+	geometry::OBJMesh meshData;
+	loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer);
+
+	math::Vec3f lightPosition = math::Vec3f(1, 0, 0);
+
+	auto depthShader = createShaderProgram("./depth_vs.glsl",
+		"./depth_fs.glsl");
+	auto normalShader = createShaderProgram("./normal_vs.glsl",
+		"./normal_fs.glsl");
+
+	normalShader.use();
+	opengl::setUniformVec3f(normalShader.uniformLocation("lightPosition"), lightPosition);
+
+
+
+	depthShader.use();
+	opengl::setUniformVec3f(depthShader.uniformLocation("lightPosition"), lightPosition);
+
+
+
+	view = glm::lookAt(
+		glm::vec3(0, 0, 3),
+		glm::vec3(0, 0, 0),
+		glm::vec3(0, 1, 0)
+	);
+	opengl::Program* program;
 	while (!glfwWindowShouldClose(window)) {
 
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-		if (updateMesh || vecs.size() == 0) {
+		glfwPollEvents(); // will process event queue and carry on 
+		glEnable(GL_MULTISAMPLE);
+		glEnable(GL_DEPTH_TEST);
 
-			//generate mesh
-			triangles = {};
-			drawSpongeTris(-0.5, 0.5, 0.5, 1, recursionLevel, faces, triangles);
-			updateMesh = false;
-			std::cout << "made thing";
-			vecs.clear();
-
-			for (auto t : triangles) {
-				vecs.push_back(Vertex(t.a, t.m_color));
-				vecs.push_back(Vertex(t.b, t.m_color));
-				vecs.push_back(Vertex(t.c, t.m_color));
-			}
-
-			std::cout << vecs.size() << "\n";
-
-			//Load vertices to gpu
-			glBindVertexArray(0);
-			glBufferData(GL_ARRAY_BUFFER, vecs.size() * sizeof(Vertex), vecs.data(), GL_STATIC_DRAW);
+		if (oldMesh != mesh) {
+			totalIndices = 0;
+			meshData;
+			loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer);
+			oldMesh = mesh;
 		}
 
-		clear();
-		glPolygonMode(GL_FRONT, GL_POLYGON);
+		if (wf) { 
+			glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+		}
+		else {
+			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
 
-		float radius = 10.0f;
-		float camX = sin(DegToRad(phi)) * cos(DegToRad(theta)) * scale;
-		float camY = sin(DegToRad(phi)) * sin(DegToRad(theta)) * scale;
-		float camZ = cos(DegToRad(phi)) * scale;
+		switch (shadingMode) {
+		case 1:
+			depthShader.use();
+			program = &depthShader;
+			break;
+		case 2:
+			normalShader.use();
+			program = &normalShader;
+			break;
+		case 3:
 
-		//std::cout << phi << "," << theta << "\n";
+			break;
 
-		//transform = glm::rotate(transform, glm::radians(-azimuth), glm::vec3(1, 0, 0));
+		}
 
-
-		if (per) {
+		if (pers) {
 			projection = glm::perspective(glm::radians(90.0f), m_width / m_height, 0.1f, 100.0f);
 		}
 		else {
 			projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.0f);
 		}
+		
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
+		program->use();
 
-		if (per != oldPer) {
-			GLint projectionLoc = glGetUniformLocation(shaderProgram, "projection");
-			glUniformMatrix4fv(projectionLoc, 1, GL_FALSE, glm::value_ptr(projection));
-			oldPer = per;
-		}
+		transform = glm::mat4(1.0f);
 
-		 view = glm::lookAt(
-			glm::vec3(
-				0,
-				0,
-				3),
-			glm::vec3(0, 0, 0),
-			glm::vec3(0, 1, 0)
+		transform = glm::scale(transform, glm::vec3(scaleFactor,scaleFactor,scaleFactor));
+
+		transform = glm::translate(transform, glm::vec3(x, y, z));
+
+		transform = glm::rotate(transform, yaw, glm::vec3(0,1,0));
+		transform = glm::rotate(transform, roll, glm::vec3(0, 0, 1));
+		transform = glm::rotate(transform, pitch, glm::vec3(1, 0, 0));
+
+
+
+
+		vao.bind();
+		//transform = glm::transpose(projection);
+		opengl::setUniformMat4f(program->uniformLocation("model"), transform, false);
+		opengl::setUniformMat4f(program->uniformLocation("view"), view, false);
+		opengl::setUniformMat4f(program->uniformLocation("projection"), projection, false);
+
+		//std::cout << totalIndices << "\n";
+
+		glDrawElements(GL_TRIANGLES,
+			totalIndices,    // # of triangles * 3
+			GL_UNSIGNED_INT, // type of indices
+			(void*)0        // offset
 		);
 
 
+		//imgui 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Test");
+		if (ImGui::Button("Toggle Wireframe"))
+			toggleWF();
+		if (ImGui::Button("Toggle Perspective"))
+			togglePer();
+		ImGui::SliderFloat("Yaw", &yaw, -3.2f, 3.2f);
+		ImGui::SliderFloat("Pitch", &pitch, -3.2f, 3.2f);
+		ImGui::SliderFloat("Roll", &roll, -3.2f, 3.2f);
+
+		ImGui::SliderFloat("X", &x, -5.f, 5.f);
+		ImGui::SliderFloat("Y", &y, -5.f, 5.f);
+		ImGui::SliderFloat("Z", &z, -5.f, 5.f);
+		ImGui::SliderInt("Model", &mesh, 1, 5);
+		ImGui::SliderInt("Shading", &shadingMode, 1, 5);
+
+		ImGui::Text("test");
+
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		ImGui::End();
 
 
-		GLint transformLoc = glGetUniformLocation(shaderProgram, "transform");
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(transform));
+
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 
-
-		glUseProgram(shaderProgram);
-
-		GLint viewLoc = glGetUniformLocation(shaderProgram, "view");
-		glUniformMatrix4fv(viewLoc, 1, GL_FALSE, glm::value_ptr(view));
-
-		if (draw) {
-			glBindVertexArray(VAO);
-			glDrawArrays(GL_TRIANGLES, 0, vecs.size());
-		}
-
+		//refresh framebuffer
 		glfwSwapBuffers(window);
-		glfwPollEvents(); // will process event queue and carry on  
+
+		
+		 
 	}
+
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	glfwDestroyWindow(window);
 	glfwTerminate();

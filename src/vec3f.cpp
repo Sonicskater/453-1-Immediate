@@ -1,3 +1,15 @@
+/**
+ * @author	Andrew Robert Owens, Philmo Gu
+ * @date 	2019-10-15.
+ * @details Organization: Biological Modeling and Visualization research group
+ * University of Calgary, Calgary, AB, Canada
+ *
+ * Contact:	arowens [at] ucalgary.ca
+ * @copyright Copyright (c) 2019 ___ALGORITHMIC_BOTANY___. All rights reserved.
+ *
+ * @brief
+ */
+
 #include "vec3f.hpp"
 
 #include <cmath>
@@ -43,6 +55,14 @@ void Vec3f::zero() {
   x = 0.f;
   y = 0.f;
   z = 0.f;
+}
+
+float const *Vec3f::data() const {
+  return &x; // warning!!!!! this is quite dangerous
+}
+
+float *Vec3f::data() {
+  return &x; // warning!!!!! this is quite dangerous
 }
 
 // Free function
@@ -100,8 +120,9 @@ Vec3f operator^(Vec3f const &a, Vec3f const &b) {
   return Vec3f(a.y * b.z - a.z * b.y, //
                a.z * b.x - a.x * b.z, //
                a.x * b.y - a.y * b.x);
+} Vec3f cross(Vec3f const &a, Vec3f const &b) {
+  return a ^ b;
 }
-Vec3f cross(Vec3f const &a, Vec3f const &b) { return a ^ b; }
 
 /*
  * Vector norm (length)
@@ -117,6 +138,39 @@ float normSquared(Vec3f const &v) { return v.x * v.x + v.y * v.y + v.z * v.z; }
 Vec3f normalized(Vec3f v) {
   float l = norm(v);
   return v /= l;
+}
+
+Vec3f rotateAroundAxis(Vec3f v, Vec3f axis, float angleDegrees) {
+  // Rodrigues formula
+  // rotates a vector around an arbitrary axis by an angle (degrees)
+
+  constexpr float degreesToRadians = M_PI / 180.f;
+  float const sinTheta = std::sin(angleDegrees * degreesToRadians);
+  float const cosTheta = std::cos(angleDegrees * degreesToRadians);
+
+  axis.normalize();
+
+  return v * cosTheta + (axis ^ v) * sinTheta +
+         axis * ((axis * v) * (1.f - cosTheta));
+}
+
+Vec3f rotateAroundNormalizedAxis(Vec3f v, Vec3f const &axis,
+                                 float angleDegrees) {
+  // Rodrigues formula
+  // rotates a vector around an arbitrary axis by an angle (degrees)
+
+  constexpr float degreesToRadians = M_PI / 180.f;
+  float const sinTheta = std::sin(angleDegrees * degreesToRadians);
+  float const cosTheta = std::cos(angleDegrees * degreesToRadians);
+
+  return v * cosTheta + (axis ^ v) * sinTheta +
+         axis * ((axis * v) * (1.f - cosTheta));
+}
+
+float distance(Vec3f const &a, Vec3f const &b) { return norm(a - b); }
+
+float distanceSquared(Vec3f const &a, Vec3f const &b) {
+  return normSquared(a - b);
 }
 
 /*
