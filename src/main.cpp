@@ -28,6 +28,8 @@
 #include "vbo_tools.hpp"
 #include <program.hpp>
 #include <shader_file_io.hpp>
+#include <texture.hpp>
+#include <image.hpp>
 
 
 
@@ -250,6 +252,7 @@ bool updateWindow = true;
 void clear();
 void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, opengl::VertexArrayObject& vao, opengl::BufferObject& indexBuffer, opengl::BufferObject& vertexBuffer);
 int main();
+
 void draw(std::vector<Triangle> tris);
 
 GLfloat* symmetricFrustumProjectionGl(float r, float t, float n, float f) {
@@ -373,9 +376,20 @@ opengl::Program createShaderProgram(std::string const& vertexShaderFile,
 
 bool wf = true;
 bool pers = true;
+bool tex = false;
 
 void toggleWF() {
 	wf = !wf;
+	std::cout << "toggled wf" << "\n";
+}
+
+void toggleTex() {
+	if (tex) {
+		tex = 0.f;
+	}
+	else {
+		tex = 1.f;
+	}
 	std::cout << "toggled wf" << "\n";
 }
 
@@ -385,7 +399,11 @@ void togglePer() {
 }
 float scaleFactor;
 
-void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, opengl::VertexArrayObject& vao, opengl::BufferObject& indexBuffer, opengl::BufferObject& vertexBuffer)
+char* texPath = "";
+
+
+
+void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, opengl::VertexArrayObject& vao, opengl::BufferObject& indexBuffer, opengl::BufferObject& vertexBuffer, opengl::Texture& texture)
 {
 	std::string filePath = "";
 
@@ -398,6 +416,7 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 			break;
 		case 2:
 			filePath = "./spot_triangulated.obj";
+			texPath = "./spot_texture.png";
 			scaleFactor = 1.f;
 			break;
 		case 3:
@@ -406,10 +425,12 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 			break;
 		case 4:
 			filePath = "./Nefertiti_Low.obj";
+			texPath = "./COLOR_Low.jpg";
 			scaleFactor = 0.2f;
 			break;
 		case 5:
 			filePath = "./Nefertiti_High.obj";
+			texPath = "./COLOR_High.jpg";
 			scaleFactor = 0.2f;
 			break;
 
@@ -443,13 +464,60 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 	}
 	//Pass in vertex normals if they are already included in .obj file
 	else {
-		std::cout << "Normals Present \n";
-		opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData);
+		if (meshData.textureCoords.empty()) {
+			std::cout << "Normals Present \n";
+			opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData);
 
-		totalIndices =
-			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
-		//std::cout << totalIndices;
+			totalIndices =
+				opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+			//std::cout << totalIndices;
+		}
+		else {
+			auto vboData = opengl::makeConsistentVertexTextureCoordNormalIndices(meshData);
+
+			totalIndices =
+				opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+
+			{
+				auto image = raster::read_image_from_file(texPath);
+
+				glActiveTexture(GL_TEXTURE0);
+				texture.bind();
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				auto channels = GL_RGBA;
+				if (image.channels() == 3)
+					channels = GL_RGB;
+
+				glTexImage2D(GL_TEXTURE_2D,  //target
+					0,                 		//level
+					channels,         		//internalformat
+					image.width(),    		//width
+					image.height(),   		//height
+					0,                		//border
+					channels,           	//format
+					GL_UNSIGNED_BYTE, 		//type
+					image.data());			//data
+
+				glGenerateMipmap(GL_TEXTURE_2D);
+
+
+			}
+		}
 	}
+}
+
+void bindTexture(opengl::Texture const& texture, opengl::Program const &program, GLchar const * s, GLuint activeTex) {
+	assert(activeTex < 32);
+	glActiveTexture(GL_TEXTURE0 + activeTex); // Activate texture in position "activeTex"
+	texture.bind();		//Bind texture object to active texture
+
+	//Set bound texture to sampler2D uniform in shader program in position "activeTex" 
+	program.use();
+	glUniform1i(program.uniformLocation(s), activeTex);
 }
 
 float yaw;
@@ -460,14 +528,21 @@ float x;
 float y;
 float z;
 
+float lightx=1;
+float lighty;
+float lightz=1;
+
 
 
 int oldMesh;
 int shadingMode = 1;
 
+
+
 int main() {
 	window = nullptr;
 
+	
 	// Close if OpenGL is not initialized
 	if (!glfwInit()) {
 		exit(EXIT_FAILURE);
@@ -619,7 +694,7 @@ int main() {
 	ImGui::CreateContext();
 	io = &ImGui::GetIO(); (void)io;
 
-	ImGui::StyleColorsDark();
+	
 
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
@@ -636,7 +711,8 @@ int main() {
 
 	GLuint totalIndices = 0;
 	geometry::OBJMesh meshData;
-	loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer);
+	opengl::Texture& texture = opengl::generateTexture();
+	loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer, texture);
 
 	math::Vec3f lightPosition = math::Vec3f(1, 0, 1);
 
@@ -647,14 +723,63 @@ int main() {
 	auto phongSolidShader = createShaderProgram("./phong_vs.glsl",
 		"./phong_fs.glsl");
 
+	auto gouraudSolidShader = createShaderProgram("./gouraud_vs.glsl",
+		"./gouraud_fs.glsl");
+
+	auto flatSolidShader = createShaderProgram("./flat_vs.glsl",
+		"./flat_fs.glsl");
+
+	auto phongTexShader = createShaderProgram("./phong_tex_vs.glsl",
+		"./phong_tex_fs.glsl");
+
+	auto gouraudTexShader = createShaderProgram("./gouraud_tex_vs.glsl",
+		"./gouraud_tex_fs.glsl");
+
+	auto flatTexShader = createShaderProgram("./flat_tex_vs.glsl",
+		"./flat_tex_fs.glsl");
+
 	normalShader.use();
-	opengl::setUniformVec3f(normalShader.uniformLocation("lightPosition"), lightPosition);
 
 	phongSolidShader.use();
 	opengl::setUniformVec3f(phongSolidShader.uniformLocation("lightPos"), lightPosition);
 	opengl::setUniformVec3f(phongSolidShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
-
 	opengl::setUniform1f(phongSolidShader.uniformLocation("ambient"), 0.1);
+
+	gouraudSolidShader.use();
+	opengl::setUniformVec3f(gouraudSolidShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(gouraudSolidShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
+	opengl::setUniform1f(gouraudSolidShader.uniformLocation("ambient"), 0.1);
+
+
+
+
+
+	// due to strange behaviour regarding the geometry shader, i used alternative method specified here:
+	// https://gamedev.stackexchange.com/questions/154854/how-do-i-implement-flat-shading-in-glsl
+	flatSolidShader.use();
+	opengl::setUniformVec3f(flatSolidShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(flatSolidShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
+	opengl::setUniform1f(flatSolidShader.uniformLocation("ambient"), 0.1);
+
+
+	// Same as above 3, but modified for textures. Wanted to use a bool, got same odd behaviour as with geometry shaders.
+
+	// due to strange behaviour regarding the geometry shader, i used alternative method specified here:
+	// https://gamedev.stackexchange.com/questions/154854/how-do-i-implement-flat-shading-in-glsl
+	flatTexShader.use();
+	opengl::setUniformVec3f(flatTexShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(flatTexShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
+	opengl::setUniform1f(flatTexShader.uniformLocation("ambient"), 0.1);
+
+	phongTexShader.use();
+	opengl::setUniformVec3f(phongTexShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(phongTexShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
+	opengl::setUniform1f(phongTexShader.uniformLocation("ambient"), 0.1);
+
+	gouraudTexShader.use();
+	opengl::setUniformVec3f(gouraudTexShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(gouraudTexShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
+	opengl::setUniform1f(gouraudTexShader.uniformLocation("ambient"), 0.1);
 
 	depthShader.use();
 	opengl::setUniformVec3f(depthShader.uniformLocation("lightPosition"), lightPosition);
@@ -666,7 +791,7 @@ int main() {
 		glm::vec3(0, 0, 0),
 		glm::vec3(0, 1, 0)
 	);
-	opengl::Program* program;
+	opengl::Program* program = &normalShader;
 	while (!glfwWindowShouldClose(window)) {
 
 
@@ -677,7 +802,8 @@ int main() {
 		if (oldMesh != mesh) {
 			totalIndices = 0;
 			meshData;
-			loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer);
+			texture = opengl::generateTexture();
+			loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer, texture);
 			oldMesh = mesh;
 		}
 
@@ -697,9 +823,37 @@ int main() {
 			normalShader.use();
 			program = &normalShader;
 			break;
+
 		case 3:
-			phongSolidShader.use();
-			program = &phongSolidShader;
+			if (tex) {
+				flatTexShader.use();
+				program = &flatTexShader;
+			}
+			else {
+				flatSolidShader.use();
+				program = &flatSolidShader;
+			}
+			break;
+		case 4:
+			if (tex) {
+				gouraudTexShader.use();
+				program = &gouraudTexShader;
+			}
+			else {
+				gouraudSolidShader.use();
+				program = &gouraudSolidShader;
+			}
+
+			break;
+		case 5:
+			if (tex) {
+				phongTexShader.use();
+				program = &phongTexShader;
+			}
+			else {
+				phongSolidShader.use();
+				program = &phongSolidShader;
+			}
 			break;
 
 		}
@@ -710,7 +864,9 @@ int main() {
 		else {
 			projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.0f);
 		}
-		
+		if (tex) {
+			bindTexture(tex, *program, "texture", 0);
+		}
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		program->use();
 
@@ -729,6 +885,12 @@ int main() {
 
 		vao.bind();
 		//transform = glm::transpose(projection);
+
+		lightPosition = math::Vec3f(lightx, lighty, lightz);
+
+		//opengl::setUniform1f(program->uniformLocation("tex"), tex);
+
+		opengl::setUniformVec3f(program->uniformLocation("lightPos"), lightPosition);
 		opengl::setUniformMat4f(program->uniformLocation("model"), transform, false);
 		opengl::setUniformMat4f(program->uniformLocation("view"), view, false);
 		opengl::setUniformMat4f(program->uniformLocation("projection"), projection, false);
@@ -741,7 +903,7 @@ int main() {
 			(void*)0        // offset
 		);
 
-
+		ImGui::StyleColorsDark();
 		//imgui 
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -752,6 +914,8 @@ int main() {
 			toggleWF();
 		if (ImGui::Button("Toggle Perspective"))
 			togglePer();
+		if (ImGui::Button("Toggle Texture"))
+			toggleTex();
 		ImGui::SliderFloat("Yaw", &yaw, -3.2f, 3.2f);
 		ImGui::SliderFloat("Pitch", &pitch, -3.2f, 3.2f);
 		ImGui::SliderFloat("Roll", &roll, -3.2f, 3.2f);
@@ -765,6 +929,14 @@ int main() {
 		ImGui::Text("test");
 
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		ImGui::End();
+
+		ImGui::Begin("Light");
+
+		ImGui::SliderFloat("X", &lightx, -5.f, 5.f);
+		ImGui::SliderFloat("Y", &lighty, -5.f, 5.f);
+		ImGui::SliderFloat("Z", &lightz, -5.f, 5.f);
 
 		ImGui::End();
 

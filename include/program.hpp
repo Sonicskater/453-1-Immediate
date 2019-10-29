@@ -35,8 +35,8 @@ public:
 
   GLuint id() const;
 
-  GLint uniformLocation(std::string const &name);
-  GLint uniformLocation(GLchar const *name);
+  GLint uniformLocation(std::string const &name) const;
+  GLint uniformLocation(GLchar const *name) const;
 
 private:
   /* Only called through makeProgram() factory function */

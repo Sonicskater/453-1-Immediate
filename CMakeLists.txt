@@ -38,6 +38,13 @@ add_library(glad ${GLAD_SOURCES})
 target_include_directories(glad PRIVATE ${GLAD_DIR}/include)
 
 #[[
+	stb image
+]]
+set(STB_DIR
+	external/stb
+	)
+
+#[[
         Headers
 ]]
 set(HEADERS
@@ -61,6 +68,9 @@ set(HEADERS
    include/shader.hpp
    include/shader_file_io.hpp
    include/program.hpp
+
+   include/texture.hpp
+   include/image.hpp
    )
 
 #[[
@@ -104,7 +114,10 @@ set(SOURCES
 	src/shader.cpp
     src/shader_file_io.cpp
 	src/program.cpp
-	
+
+	src/texture.cpp
+	src/image.cpp
+
     )
 
 #[[
@@ -117,6 +130,7 @@ target_include_directories(${PROJECT_NAME}
     PRIVATE external
     PRIVATE ${GLFW_DIR}/include
     PRIVATE ${GLAD_DIR}/include
+	PRIVATE ${STB_DIR}
     )
 
 target_compile_definitions(${PROJECT_NAME}
@@ -151,6 +165,7 @@ file(GLOB MODELS
 
 	"models/*.obj"
 	"models/*.jpg"
+	"models/*.png"
 
 )
 

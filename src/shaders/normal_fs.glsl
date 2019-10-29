@@ -6,6 +6,7 @@ in Data {
 	vec3 normal;
 } data;
 
+uniform float tex;
 
 void main()
 {

@@ -32,7 +32,7 @@ Program::operator bool() const { return isValid(); }
 
 bool isValidLocation(GLint location) { return location != -1; }
 
-GLint Program::uniformLocation(const std::string &name) {
+GLint Program::uniformLocation(const std::string &name) const {
   GLint location = glGetUniformLocation(id(), name.c_str());
   if (!isValidLocation(location)) {
 	  std::cerr << "[ERROR] Invalid shader location: " << name.c_str() << '\n';
@@ -40,7 +40,7 @@ GLint Program::uniformLocation(const std::string &name) {
   return location;
 }
 
-GLint Program::uniformLocation(GLchar const *name) {
+GLint Program::uniformLocation(GLchar const *name) const {
   GLint location = glGetUniformLocation(id(), name);
   if (!isValidLocation(location)) {
 	  std::cerr << "[ERROR] Invalid shader location: " << name << '\n';

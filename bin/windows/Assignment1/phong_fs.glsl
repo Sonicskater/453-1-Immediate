@@ -11,6 +11,7 @@ uniform vec3 lookPos;
 
 uniform float ambient;
 
+uniform float tex;
 
 void main()
 {

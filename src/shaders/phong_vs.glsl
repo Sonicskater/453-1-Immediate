@@ -12,6 +12,8 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
+uniform float tex;
+
 uniform vec3 lightPos;
 
 void main()
