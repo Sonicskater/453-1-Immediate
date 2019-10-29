@@ -13,10 +13,10 @@
 #include <string>
 #include <shader_tools.hpp>
 #include "glm\glm.hpp"
-#include <glm\ext\matrix_transform.hpp>
-#include <glm\gtc\type_ptr.hpp>
-#include <glm\gtc\quaternion.hpp>
-#include <glm\gtx\quaternion.hpp>
+#include "glm\ext\matrix_transform.hpp"
+#include "glm\gtc\type_ptr.hpp"
+#include "glm\gtc\quaternion.hpp"
+#include "glm\gtx\quaternion.hpp"
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
@@ -875,6 +875,8 @@ int main() {
 			texture = opengl::generateTexture();
 			loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer, texture);
 			oldMesh = mesh;
+			x, y, z = 0;
+			roll, yaw, pitch = 0;
 		}
 
 		if (wf) { 
