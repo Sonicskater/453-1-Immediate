@@ -43,7 +43,7 @@ Image read_image_from_file(char const *filename) {
   int channels = 0;
   int requestedChannels = 0; // 0 : all
 
-  stbi_set_flip_vertically_on_load(false); // sets static state
+  stbi_set_flip_vertically_on_load(true); // sets static state
 
   Image::data_ptr data = Image::data_ptr( //
       stbi_load(filename,                 // name

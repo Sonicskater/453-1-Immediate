@@ -12,7 +12,7 @@
 #include "GLFW/glfw3.h"
 #include <string>
 #include <shader_tools.hpp>
-#include <glm\glm.hpp>
+#include "glm\glm.hpp"
 #include <glm\ext\matrix_transform.hpp>
 #include <glm\gtc\type_ptr.hpp>
 #include <glm\gtc\quaternion.hpp>
@@ -450,17 +450,50 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 
 		geometry::Normals normals = geometry::calculateVertexNormals(meshData.triangles, meshData.vertices);
 
-		//std::cout << normals.size() << "\n";
+		if (meshData.textureCoords.empty()) {
+			std::cout << "Normals Present \n";
+			opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData, normals);//, normals);
 
-		//meshData.normals = normals;
-		opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData, normals);//, normals);
+			totalIndices =
+				opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+			//std::cout << totalIndices;
+		}
+		else {
 
-		//std::cout << meshData.normals.size() << "\n";
+			auto vboData = opengl::makeConsistentVertexTextureCoordNormalIndices(meshData, normals);
 
-		totalIndices =
-			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
+			totalIndices =
+				opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
 
-		//std::cout << totalIndices;
+			{
+				auto image = raster::read_image_from_file(texPath);
+
+				glActiveTexture(GL_TEXTURE0);
+				texture.bind();
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+				auto channels = GL_RGBA;
+				if (image.channels() == 3)
+					channels = GL_RGB;
+
+				glTexImage2D(GL_TEXTURE_2D,  //target
+					0,                 		//level
+					channels,         		//internalformat
+					image.width(),    		//width
+					image.height(),   		//height
+					0,                		//border
+					channels,           	//format
+					GL_UNSIGNED_BYTE, 		//type
+					image.data());			//data
+
+				glGenerateMipmap(GL_TEXTURE_2D);
+
+
+			}
+		}
 	}
 	//Pass in vertex normals if they are already included in .obj file
 	else {
@@ -703,7 +736,7 @@ int main() {
 	int nbFrames = 0;
 
 	char* frameRate = "0";
-	int mesh = 1;
+	int mesh = 4;
 
 	auto vao = opengl::makeVertexArrayObject();
 	auto indexBuffer = opengl::makeBufferObject();
@@ -799,6 +832,43 @@ int main() {
 		glEnable(GL_MULTISAMPLE);
 		glEnable(GL_DEPTH_TEST);
 
+		ImGui::StyleColorsDark();
+		//imgui 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Test");
+		if (ImGui::Button("Toggle Wireframe"))
+			toggleWF();
+		if (ImGui::Button("Toggle Perspective"))
+			togglePer();
+		if (ImGui::Button("Toggle Texture"))
+			toggleTex();
+		ImGui::SliderFloat("Yaw", &yaw, -3.2f, 3.2f);
+		ImGui::SliderFloat("Pitch", &pitch, -3.2f, 3.2f);
+		ImGui::SliderFloat("Roll", &roll, -3.2f, 3.2f);
+
+		ImGui::SliderFloat("X", &x, -5.f, 5.f);
+		ImGui::SliderFloat("Y", &y, -5.f, 5.f);
+		ImGui::SliderFloat("Z", &z, -5.f, 5.f);
+		ImGui::SliderInt("Model", &mesh, 1, 5);
+		ImGui::SliderInt("Shading", &shadingMode, 1, 5);
+
+		ImGui::Text("test");
+
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+
+		ImGui::End();
+
+		ImGui::Begin("Light");
+
+		ImGui::SliderFloat("X", &lightx, -5.f, 5.f);
+		ImGui::SliderFloat("Y", &lighty, -5.f, 5.f);
+		ImGui::SliderFloat("Z", &lightz, -5.f, 5.f);
+
+		ImGui::End();
+
 		if (oldMesh != mesh) {
 			totalIndices = 0;
 			meshData;
@@ -812,6 +882,9 @@ int main() {
 		}
 		else {
 			glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		}
+		if (mesh == 1 || mesh == 3) {
+			tex = false;
 		}
 
 		switch (shadingMode) {
@@ -865,7 +938,7 @@ int main() {
 			projection = glm::ortho(-1.f, 1.f, -1.f, 1.f, 0.1f, 100.0f);
 		}
 		if (tex) {
-			bindTexture(tex, *program, "texture", 0);
+			bindTexture(tex, *program, "textur", 0);
 		}
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 		program->use();
@@ -903,42 +976,7 @@ int main() {
 			(void*)0        // offset
 		);
 
-		ImGui::StyleColorsDark();
-		//imgui 
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
-
-		ImGui::Begin("Test");
-		if (ImGui::Button("Toggle Wireframe"))
-			toggleWF();
-		if (ImGui::Button("Toggle Perspective"))
-			togglePer();
-		if (ImGui::Button("Toggle Texture"))
-			toggleTex();
-		ImGui::SliderFloat("Yaw", &yaw, -3.2f, 3.2f);
-		ImGui::SliderFloat("Pitch", &pitch, -3.2f, 3.2f);
-		ImGui::SliderFloat("Roll", &roll, -3.2f, 3.2f);
-
-		ImGui::SliderFloat("X", &x, -5.f, 5.f);
-		ImGui::SliderFloat("Y", &y, -5.f, 5.f);
-		ImGui::SliderFloat("Z", &z, -5.f, 5.f);
-		ImGui::SliderInt("Model", &mesh, 1, 5);
-		ImGui::SliderInt("Shading", &shadingMode, 1, 5);
-
-		ImGui::Text("test");
-
-		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
-		ImGui::End();
-
-		ImGui::Begin("Light");
-
-		ImGui::SliderFloat("X", &lightx, -5.f, 5.f);
-		ImGui::SliderFloat("Y", &lighty, -5.f, 5.f);
-		ImGui::SliderFloat("Z", &lightz, -5.f, 5.f);
-
-		ImGui::End();
+		
 
 
 

@@ -2,17 +2,19 @@
 out vec4 fragColor;
 
 in vec3 outColor; 
+in vec2 texCoord;
 
 uniform vec3 lightPosition;
 
 uniform float tex;
 
-uniform sampler2D texture;
+uniform sampler2D textur;
 
 void main()
 {
 	
-    vec3 color = vec3(1.0, 0.5, 0.31);
+    vec3 color = texture(textur, texCoord).rgb;
+
 
 	fragColor = vec4(color * outColor, 1.0);
 }

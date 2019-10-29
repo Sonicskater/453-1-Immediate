@@ -4,6 +4,7 @@ out vec4 FragColor;
 in Data {
 	vec3 position;
 	vec3 normal;
+	vec2 texCoord;
 } data;
 
 uniform vec3 lightPos;
@@ -11,7 +12,8 @@ uniform vec3 lookPos;
 
 uniform float ambient;
 
-uniform float tex;
+
+uniform sampler2D textur;
 
 void main()
 {
@@ -21,7 +23,7 @@ void main()
     vec3 yTangent = dFdy( data.position );
 	vec3 normal = normalize( cross( xTangent, yTangent ) );
 
-    vec3 color = vec3(1.0, 0.5, 0.31);
+    vec3 color = texture(textur, data.texCoord).rgb;
 
 	vec3 lightColor = vec3(1,1,1);
 
