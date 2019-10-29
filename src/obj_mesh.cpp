@@ -45,7 +45,7 @@ calculateTriangleNormals(std::vector<IndicesTriangle> const &indexTriangles, std
 		tmp.push_back(norm);
 
 	}
-	std::cout << tmp.size() << "\n";
+	//std::cout << tmp.size() << "\n";
 	return tmp;
 }
 

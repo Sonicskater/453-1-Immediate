@@ -420,7 +420,7 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 		std::cerr << "[Error] Cannot load .obj file located at: " << filePath;
 	}
 
-	std::cout << meshData.triangles.size() << "," << meshData.vertices.size() << "," << meshData.normals.size() << "\n";
+	//std::cout << meshData.triangles.size() << "," << meshData.vertices.size() << "," << meshData.normals.size() << "\n";
 
 	//Calculate vertex normals if they are not included in .obj file
 	if (meshData.normals.size() == 0) {
@@ -429,17 +429,17 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 
 		geometry::Normals normals = geometry::calculateVertexNormals(meshData.triangles, meshData.vertices);
 
-		std::cout << normals.size() << "\n";
+		//std::cout << normals.size() << "\n";
 
 		//meshData.normals = normals;
 		opengl::VBOData_VerticesNormals vboData = opengl::makeConsistentVertexNormalIndices(meshData, normals);//, normals);
 
-		std::cout << meshData.normals.size() << "\n";
+		//std::cout << meshData.normals.size() << "\n";
 
 		totalIndices =
 			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
 
-		std::cout << totalIndices;
+		//std::cout << totalIndices;
 	}
 	//Pass in vertex normals if they are already included in .obj file
 	else {
@@ -448,7 +448,7 @@ void loadMesh(int mesh, geometry::OBJMesh& meshData, GLuint& totalIndices, openg
 
 		totalIndices =
 			opengl::setup_vao_and_buffers(vao, indexBuffer, vertexBuffer, vboData);
-		std::cout << totalIndices;
+		//std::cout << totalIndices;
 	}
 }
 
@@ -550,7 +550,7 @@ int main() {
 
 	)fs";
 
-	std::cout << sizeof(Vertex) << "," << sizeof(glm::dvec3) << ","  << "\n";
+	//std::cout << sizeof(Vertex) << "," << sizeof(glm::dvec3) << ","  << "\n";
 
 
 
@@ -638,17 +638,23 @@ int main() {
 	geometry::OBJMesh meshData;
 	loadMesh(mesh, meshData, totalIndices, vao, indexBuffer, vertexBuffer);
 
-	math::Vec3f lightPosition = math::Vec3f(1, 0, 0);
+	math::Vec3f lightPosition = math::Vec3f(1, 0, 1);
 
 	auto depthShader = createShaderProgram("./depth_vs.glsl",
 		"./depth_fs.glsl");
 	auto normalShader = createShaderProgram("./normal_vs.glsl",
 		"./normal_fs.glsl");
+	auto phongSolidShader = createShaderProgram("./phong_vs.glsl",
+		"./phong_fs.glsl");
 
 	normalShader.use();
 	opengl::setUniformVec3f(normalShader.uniformLocation("lightPosition"), lightPosition);
 
+	phongSolidShader.use();
+	opengl::setUniformVec3f(phongSolidShader.uniformLocation("lightPos"), lightPosition);
+	opengl::setUniformVec3f(phongSolidShader.uniformLocation("lookPos"), math::Vec3f(0, 0, 3));
 
+	opengl::setUniform1f(phongSolidShader.uniformLocation("ambient"), 0.1);
 
 	depthShader.use();
 	opengl::setUniformVec3f(depthShader.uniformLocation("lightPosition"), lightPosition);
@@ -692,7 +698,8 @@ int main() {
 			program = &normalShader;
 			break;
 		case 3:
-
+			phongSolidShader.use();
+			program = &phongSolidShader;
 			break;
 
 		}
